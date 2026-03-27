@@ -44,10 +44,10 @@ com.msu.campuseats.app-annotation-experimental-1.4.0-42 C:\Users\kamal\.gradle\c
 com.msu.campuseats.app-animation-release-43 C:\Users\kamal\.gradle\caches\9.0-milestone-1\transforms\f9301106c77f5df7c9001c320ab46f15\transformed\animation-release\res
 com.msu.campuseats.app-navigation-common-ktx-2.7.7-44 C:\Users\kamal\.gradle\caches\9.0-milestone-1\transforms\fde88c4f3a3738b2b5cb6e096ff4609d\transformed\navigation-common-ktx-2.7.7\res
 com.msu.campuseats.app-runtime-saveable-release-45 C:\Users\kamal\.gradle\caches\9.0-milestone-1\transforms\feb33da4ef0c3a5878a868038af18f83\transformed\runtime-saveable-release\res
-com.msu.campuseats.app-pngs-46 C:\Users\kamal\Desktop\delivery-robot-main\delivery-robot\android-kiosk\app\build\generated\res\pngs\debug
-com.msu.campuseats.app-resValues-47 C:\Users\kamal\Desktop\delivery-robot-main\delivery-robot\android-kiosk\app\build\generated\res\resValues\debug
-com.msu.campuseats.app-packageDebugResources-48 C:\Users\kamal\Desktop\delivery-robot-main\delivery-robot\android-kiosk\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
-com.msu.campuseats.app-packageDebugResources-49 C:\Users\kamal\Desktop\delivery-robot-main\delivery-robot\android-kiosk\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
-com.msu.campuseats.app-debug-50 C:\Users\kamal\Desktop\delivery-robot-main\delivery-robot\android-kiosk\app\build\intermediates\merged_res\debug\mergeDebugResources
-com.msu.campuseats.app-debug-51 C:\Users\kamal\Desktop\delivery-robot-main\delivery-robot\android-kiosk\app\src\debug\res
-com.msu.campuseats.app-main-52 C:\Users\kamal\Desktop\delivery-robot-main\delivery-robot\android-kiosk\app\src\main\res
+com.msu.campuseats.app-pngs-46 C:\delivery-robot\delivery-robot\android-kiosk\app\build\generated\res\pngs\debug
+com.msu.campuseats.app-resValues-47 C:\delivery-robot\delivery-robot\android-kiosk\app\build\generated\res\resValues\debug
+com.msu.campuseats.app-packageDebugResources-48 C:\delivery-robot\delivery-robot\android-kiosk\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
+com.msu.campuseats.app-packageDebugResources-49 C:\delivery-robot\delivery-robot\android-kiosk\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
+com.msu.campuseats.app-debug-50 C:\delivery-robot\delivery-robot\android-kiosk\app\build\intermediates\merged_res\debug\mergeDebugResources
+com.msu.campuseats.app-debug-51 C:\delivery-robot\delivery-robot\android-kiosk\app\src\debug\res
+com.msu.campuseats.app-main-52 C:\delivery-robot\delivery-robot\android-kiosk\app\src\main\res

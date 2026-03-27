@@ -1,0 +1,4 @@
+#Fri Mar 27 14:47:54 EDT 2026
+base.0=C\:\\delivery-robot\\delivery-robot\\android-kiosk\\app\\build\\intermediates\\dex\\debugAndroidTest\\mergeProjectDexDebugAndroidTest\\0\\classes.dex
+path.0=0/classes.dex
+renamed.0=classes.dex

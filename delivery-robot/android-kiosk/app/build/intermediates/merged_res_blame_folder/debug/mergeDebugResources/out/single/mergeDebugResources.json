@@ -1,22 +1,18 @@
 [
     {
-        "merged": "C:\\Users\\kamal\\.gradle\\daemon\\9.0-milestone-1\\com.msu.campuseats.app-debug-50:\\drawable_ic_launcher_background.xml.flat",
-        "source": "C:\\Users\\kamal\\.gradle\\daemon\\9.0-milestone-1\\com.msu.campuseats.app-main-52:\\drawable\\ic_launcher_background.xml"
+        "merged": "com.msu.campuseats.app-debug-50:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.msu.campuseats.app-main-52:/mipmap-anydpi-v26/ic_launcher_round.xml"
     },
     {
-        "merged": "C:\\Users\\kamal\\.gradle\\daemon\\9.0-milestone-1\\com.msu.campuseats.app-debug-50:\\mipmap-anydpi-v26_ic_launcher.xml.flat",
-        "source": "C:\\Users\\kamal\\.gradle\\daemon\\9.0-milestone-1\\com.msu.campuseats.app-main-52:\\mipmap-anydpi-v26\\ic_launcher.xml"
-    },
-    {
-        "merged": "C:\\Users\\kamal\\.gradle\\daemon\\9.0-milestone-1\\com.msu.campuseats.app-debug-50:\\mipmap-anydpi-v26_ic_launcher_round.xml.flat",
-        "source": "C:\\Users\\kamal\\.gradle\\daemon\\9.0-milestone-1\\com.msu.campuseats.app-main-52:\\mipmap-anydpi-v26\\ic_launcher_round.xml"
-    },
-    {
-        "merged": "C:\\Users\\kamal\\.gradle\\daemon\\9.0-milestone-1\\com.msu.campuseats.app-debug-50:\\drawable_ic_launcher_foreground.xml.flat",
-        "source": "C:\\Users\\kamal\\.gradle\\daemon\\9.0-milestone-1\\com.msu.campuseats.app-main-52:\\drawable\\ic_launcher_foreground.xml"
+        "merged": "com.msu.campuseats.app-debug-50:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.msu.campuseats.app-main-52:/mipmap-anydpi-v26/ic_launcher.xml"
     },
     {
         "merged": "com.msu.campuseats.app-debug-50:/drawable_ic_launcher_background.xml.flat",
         "source": "com.msu.campuseats.app-main-52:/drawable/ic_launcher_background.xml"
+    },
+    {
+        "merged": "com.msu.campuseats.app-debug-50:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.msu.campuseats.app-main-52:/drawable/ic_launcher_foreground.xml"
     }
 ]
