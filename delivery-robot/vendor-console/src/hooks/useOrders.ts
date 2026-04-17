@@ -4,7 +4,12 @@ import { generateMockOrder, INITIAL_ORDERS } from "../data/mockOrders";
 
 const WS_INTERVAL_MS = 18000;
 
-export function useOrders() {
+interface UseOrdersOptions {
+  autoAcceptOrders?: boolean;
+}
+
+export function useOrders(options: UseOrdersOptions = {}) {
+  const { autoAcceptOrders = false } = options;
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [isPaused, setIsPaused] = useState(false);
   const [newOrderIds, setNewOrderIds] = useState<Set<string>>(new Set());
@@ -16,6 +21,9 @@ export function useOrders() {
     const interval = setInterval(() => {
       if (isPausedRef.current) return;
       const newOrder = generateMockOrder();
+      if (autoAcceptOrders) {
+        newOrder.status = "ACCEPTED";
+      }
       setOrders((prev) => [newOrder, ...prev]);
       setNewOrderIds((prev) => new Set(prev).add(newOrder.id));
       setTimeout(() => {
@@ -40,6 +48,7 @@ export function useOrders() {
   const togglePause = useCallback(() => setIsPaused((prev) => !prev), []);
 
   return {
+    allOrders: orders,
     newOrders:      orders.filter((o) => o.status === "NEW"),
     acceptedOrders: orders.filter((o) => o.status === "ACCEPTED"),
     preparingOrders:orders.filter((o) => o.status === "PREPARING"),

@@ -22,3 +22,31 @@ export interface Order {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export type AppTheme = "dark" | "light";
+export type AppLanguage = "en" | "es";
+
+export interface VendorSettings {
+  businessName: string;
+  contactEmail: string;
+  contactPhone: string;
+  pickupPrepTimeMins: number;
+  isStoreOpen: boolean;
+  hoursOfOperation: string;
+  autoAcceptOrders: boolean;
+  theme: AppTheme;
+  language: AppLanguage;
+  passwordHint: string;
+  twoFactorEnabled: boolean;
+}
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  description: string;
+  imageUrl: string;
+  prepTimeMins: number;
+  isAvailable: boolean;
+}
