@@ -1,0 +1,28 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.msu.campuseats.app-mergeDebugResources-48:/values-v23/values-v23.xml",
+            "map": [
+                {
+                    "source": "C:\\delivery-robot\\delivery-robot\\android-kiosk\\app\\src\\main\\res\\values-v23\\themes.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "57",
+                        "endLines": "6",
+                        "endColumns": "12",
+                        "endOffsets": "376"
+                    },
+                    "to": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "6",
+                        "endColumns": "12",
+                        "endOffsets": "370"
+                    }
+                }
+            ]
+        }
+    ]
+}
