@@ -47,7 +47,7 @@ export function generateMockOrder(): Order {
     studentName: NAMES[Math.floor(Math.random() * NAMES.length)],
     deliveryLocation: LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)],
     items,
-    status: "NEW",
+    status: "PLACED",
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -63,7 +63,7 @@ export const INITIAL_ORDERS: Order[] = [
       { id: "i1", name: "Chicken Caesar Wrap", quantity: 1, customisation: "no croutons" },
       { id: "i2", name: "Iced Coffee", quantity: 1, customisation: "oat milk" },
     ],
-    status: "NEW",
+    status: "PLACED",
     createdAt: new Date(Date.now() - 90000),
     updatedAt: new Date(Date.now() - 90000),
   },
