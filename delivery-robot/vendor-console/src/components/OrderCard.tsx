@@ -77,7 +77,7 @@ export default function OrderCard({ order, isNew, isLight = false, onUpdateStatu
       </ul>
 
       {/* Accept / Reject */}
-      {order.status === "NEW" && (
+      {order.status === "PLACED" && (
         <div className="flex gap-2">
           <button
             onClick={() => onUpdateStatus(order.id, "REJECTED")}
@@ -111,6 +111,17 @@ export default function OrderCard({ order, isNew, isLight = false, onUpdateStatu
             <polyline points="20 6 9 17 4 12" />
           </svg>
           Awaiting robot dispatch
+        </div>
+      )}
+
+      {/* Dispatched state */}
+      {order.status === "DISPATCHED" && (
+        <div className="flex items-center gap-1.5 font-mono text-[11px] text-blue-400">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          Robot dispatched — on the way
         </div>
       )}
 
