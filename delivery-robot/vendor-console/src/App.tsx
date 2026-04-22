@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { DEFAULT_MENU_ITEMS, DEFAULT_VENDOR_SETTINGS } from "./data/defaults";
+import { login as apiLogin, logout as apiLogout } from "./api/auth";
+import { isLoggedIn } from "./api/client";
+import { DEFAULT_VENDOR_SETTINGS } from "./data/defaults";
 import { useOrders } from "./hooks/useOrders";
+import { useVendor } from "./hooks/useVendor";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import MenuPage from "./pages/MenuPage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
 import SettingsPage from "./pages/SettingsPage";
-import type { MenuItem, VendorSettings } from "./types";
+import type { VendorSettings } from "./types";
 
 type PageKey = "dashboard" | "history" | "menu" | "settings";
 
-const SESSION_KEY = "vendor_console_session";
 const SETTINGS_KEY = "vendor_console_settings";
-/** v2: 15 items across 5 categories; bump key so old 3-item caches are replaced */
-const MENU_KEY = "vendor_console_menu_v2";
 
 function readJson<T>(key: string, fallback: T): T {
   const raw = localStorage.getItem(key);
@@ -28,16 +28,17 @@ function readJson<T>(key: string, fallback: T): T {
 export default function App() {
   const [activePage, setActivePage] = useState<PageKey>("dashboard");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => localStorage.getItem(SESSION_KEY) === "1"
-  );
+  const [isAuthenticated, setIsAuthenticated] = useState(() => isLoggedIn());
   const [settings, setSettings] = useState<VendorSettings>(() =>
     readJson(SETTINGS_KEY, DEFAULT_VENDOR_SETTINGS)
   );
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
-    const loaded = readJson<MenuItem[]>(MENU_KEY, DEFAULT_MENU_ITEMS);
-    return loaded.length >= 15 ? loaded : DEFAULT_MENU_ITEMS;
-  });
+
+  const {
+    vendorName,
+    isPaused,
+    togglePause,
+    updateVendorName,
+  } = useVendor();
 
   const {
     allOrders,
@@ -45,19 +46,16 @@ export default function App() {
     acceptedOrders,
     preparingOrders,
     readyOrders,
-    isPaused,
+    dispatchedOrders,
+    isLoading: ordersLoading,
+    error: ordersError,
     newOrderIds,
     updateOrderStatus,
-    togglePause,
   } = useOrders({ autoAcceptOrders: settings.autoAcceptOrders });
 
   useEffect(() => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   }, [settings]);
-
-  useEffect(() => {
-    localStorage.setItem(MENU_KEY, JSON.stringify(menuItems));
-  }, [menuItems]);
 
   const shellClasses = useMemo(() => {
     if (settings.theme === "light") {
@@ -67,19 +65,34 @@ export default function App() {
   }, [settings.theme]);
   const isLight = settings.theme === "light";
 
-  function login(username: string, password: string): boolean {
-    const ok = username === "vendor" && password === "password123";
-    if (ok) {
-      localStorage.setItem(SESSION_KEY, "1");
-      setIsAuthenticated(true);
+  // Listen for session expiry fired by the axios interceptor when refresh fails.
+  useEffect(() => {
+    function onSessionExpired() {
+      setIsAuthenticated(false);
+      setActivePage("dashboard");
     }
+    window.addEventListener("vendor:session-expired", onSessionExpired);
+    return () => window.removeEventListener("vendor:session-expired", onSessionExpired);
+  }, []);
+
+  async function login(username: string, password: string): Promise<boolean> {
+    const ok = await apiLogin(username, password);
+    if (ok) setIsAuthenticated(true);
     return ok;
   }
 
   function logout() {
-    localStorage.removeItem(SESSION_KEY);
+    apiLogout();
     setIsAuthenticated(false);
     setActivePage("dashboard");
+  }
+
+  async function handleSettingsSave(next: VendorSettings) {
+    setSettings(next);
+    // Sync business name to backend if it changed
+    if (next.businessName !== settings.businessName) {
+      await updateVendorName(next.businessName);
+    }
   }
 
   if (!isAuthenticated) {
@@ -94,7 +107,7 @@ export default function App() {
           className="flex items-center justify-start gap-2"
         >
           <span className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.7)]" />
-          <span className="font-mono text-[18px] font-bold tracking-wide">Campus Eats</span>
+          <span className="font-mono text-[18px] font-bold tracking-wide">{vendorName}</span>
         </button>
         <div className="flex items-center justify-center">
           <span className={`text-xs ${isLight ? "text-zinc-600" : "text-zinc-400"}`}>
@@ -119,7 +132,7 @@ export default function App() {
             className={`fixed left-0 top-0 h-full w-72 z-30 border-r p-4 ${isLight ? "bg-white border-zinc-300 text-zinc-900" : "bg-zinc-900 border-zinc-700 text-zinc-100"}`}
           >
             <div className="flex items-center justify-between mb-4">
-              <span className="font-mono text-lg font-bold tracking-wide">Campus Eats</span>
+              <span className="font-mono text-lg font-bold tracking-wide">{vendorName}</span>
               <button
                 onClick={() => setIsMenuOpen(false)}
                 className={`px-2 py-1 rounded text-sm ${isLight ? "hover:bg-zinc-100" : "hover:bg-zinc-800"}`}
@@ -165,16 +178,19 @@ export default function App() {
             acceptedOrders={acceptedOrders}
             preparingOrders={preparingOrders}
             readyOrders={readyOrders}
+            dispatchedOrders={dispatchedOrders}
             isPaused={isPaused}
             isLight={isLight}
             newOrderIds={newOrderIds}
+            isLoading={ordersLoading}
+            error={ordersError}
             onTogglePause={togglePause}
             onUpdateStatus={updateOrderStatus}
           />
         )}
         {activePage === "history" && <OrderHistoryPage orders={allOrders} isLight={isLight} />}
-        {activePage === "menu" && <MenuPage items={menuItems} isLight={isLight} onChange={setMenuItems} />}
-        {activePage === "settings" && <SettingsPage value={settings} isLight={isLight} onChange={setSettings} />}
+        {activePage === "menu" && <MenuPage isLight={isLight} />}
+        {activePage === "settings" && <SettingsPage value={settings} isLight={isLight} onChange={handleSettingsSave} />}
       </div>
     </div>
   );

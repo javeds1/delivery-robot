@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 interface AuthPageProps {
-  onLogin: (username: string, password: string) => boolean;
+  onLogin: (username: string, password: string) => Promise<boolean>;
 }
 
 export default function AuthPage({ onLogin }: AuthPageProps) {
@@ -9,14 +9,23 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  function submit() {
+  async function submit() {
     if (mode === "signup") {
-      setMessage("Signup demo only. Use vendor / password123 to log in.");
+      setMessage("Contact your administrator to create a vendor account.");
       return;
     }
-    const ok = onLogin(username, password);
-    setMessage(ok ? "" : "Invalid credentials. Use vendor / password123.");
+    setIsLoading(true);
+    setMessage("");
+    try {
+      const ok = await onLogin(username, password);
+      if (!ok) setMessage("Invalid credentials. Check your username and password.");
+    } catch {
+      setMessage("Could not reach the server. Make sure the backend is running.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -56,24 +65,21 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submit()}
               className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-sm"
-              placeholder="password123"
+              placeholder="vendorpassword123"
             />
           </label>
           <button
             onClick={submit}
-            className="w-full py-2 bg-orange-500 hover:bg-orange-400 text-black rounded font-semibold text-sm"
+            disabled={isLoading}
+            className="w-full py-2 bg-orange-500 hover:bg-orange-400 disabled:opacity-50 disabled:cursor-not-allowed text-black rounded font-semibold text-sm"
           >
-            {mode === "login" ? "Log In" : "Create Account"}
+            {isLoading ? "Logging in…" : mode === "login" ? "Log In" : "Create Account"}
           </button>
         </div>
 
         {message && <p className="mt-3 text-xs text-amber-300">{message}</p>}
-
-        <p className="mt-5 text-xs text-zinc-500">
-          Demo account: <span className="text-zinc-300">vendor</span> /{" "}
-          <span className="text-zinc-300">password123</span>
-        </p>
       </div>
     </div>
   );

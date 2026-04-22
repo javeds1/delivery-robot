@@ -6,7 +6,7 @@ interface OrderHistoryPageProps {
   isLight?: boolean;
 }
 
-const HISTORY_STATUSES: OrderStatus[] = ["READY", "REJECTED"];
+const HISTORY_STATUSES: OrderStatus[] = ["DELIVERED", "REJECTED", "CANCELLED", "FALLBACK"];
 
 export default function OrderHistoryPage({ orders, isLight = false }: OrderHistoryPageProps) {
   const [status, setStatus] = useState<"ALL" | OrderStatus>("ALL");
@@ -46,8 +46,10 @@ export default function OrderHistoryPage({ orders, isLight = false }: OrderHisto
           className={`px-3 py-2 rounded border ${isLight ? "bg-white border-zinc-300" : "bg-zinc-800 border-zinc-700"}`}
         >
           <option value="ALL">All statuses</option>
-          <option value="READY">Ready</option>
+          <option value="DELIVERED">Delivered</option>
           <option value="REJECTED">Rejected</option>
+          <option value="CANCELLED">Cancelled</option>
+          <option value="FALLBACK">Fallback</option>
         </select>
       </div>
 
