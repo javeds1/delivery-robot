@@ -10,7 +10,7 @@ export const DEFAULT_VENDOR_SETTINGS: VendorSettings = {
   autoAcceptOrders: false,
   theme: "dark",
   language: "en",
-  passwordHint: "Use vendor / password123 for demo",
+  passwordHint: "",
   twoFactorEnabled: false,
 };
 

@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
+import { useMenu } from "../hooks/useMenu";
 import type { MenuItem } from "../types";
 
 interface MenuPageProps {
-  items: MenuItem[];
   isLight?: boolean;
-  onChange: (items: MenuItem[]) => void;
 }
 
-const EMPTY_FORM: Omit<MenuItem, "id"> = {
+type FormData = Omit<MenuItem, "id">;
+
+const EMPTY_FORM: FormData = {
   name: "",
   category: "",
   price: 0,
@@ -17,57 +18,42 @@ const EMPTY_FORM: Omit<MenuItem, "id"> = {
   isAvailable: true,
 };
 
-export default function MenuPage({ items, isLight = false, onChange }: MenuPageProps) {
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [showAddForm, setShowAddForm] = useState(false);
+export default function MenuPage({ isLight = false }: MenuPageProps) {
+  const { items, isLoading, error, clearError, addItem, saveItem, removeItem, toggleAvailable } =
+    useMenu();
+
+  const [form, setForm] = useState<FormData>(EMPTY_FORM);
+  const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const kioskPayload = useMemo(
     () =>
       JSON.stringify(
         items
           .filter((item) => item.isAvailable)
-          .map((item) => ({
-            id: item.id,
-            name: item.name,
-            category: item.category,
-            price: item.price,
-            description: item.description,
-            imageUrl: item.imageUrl,
-            prepTimeMins: item.prepTimeMins,
+          .map(({ id, name, category, price, description, imageUrl, prepTimeMins }) => ({
+            id,
+            name,
+            category,
+            price,
+            description,
+            imageUrl,
+            prepTimeMins,
           })),
         null,
-        2
+        2,
       ),
-    [items]
+    [items],
   );
 
-  function addItem() {
-    if (!form.name.trim() || !form.category.trim()) return;
-    const next: MenuItem = {
-      id: `menu-${Date.now()}`,
-      ...form,
-      price: Number(form.price),
-      prepTimeMins: Number(form.prepTimeMins),
-    };
-    onChange([next, ...items]);
+  function openAdd() {
+    setEditingId(null);
     setForm(EMPTY_FORM);
-    setShowAddForm(false);
+    setShowForm(true);
   }
 
-  function removeItem(id: string) {
-    onChange(items.filter((item) => item.id !== id));
-  }
-
-  function toggleAvailable(id: string) {
-    onChange(
-      items.map((item) =>
-        item.id === id ? { ...item, isAvailable: !item.isAvailable } : item
-      )
-    );
-  }
-
-  function startEdit(item: MenuItem) {
+  function openEdit(item: MenuItem) {
     setEditingId(item.id);
     setForm({
       name: item.name,
@@ -78,100 +64,112 @@ export default function MenuPage({ items, isLight = false, onChange }: MenuPageP
       prepTimeMins: item.prepTimeMins,
       isAvailable: item.isAvailable,
     });
-    setShowAddForm(true);
+    setShowForm(true);
   }
 
-  function saveEdit() {
-    if (!editingId) return;
-    onChange(
-      items.map((item) =>
-        item.id === editingId
-          ? {
-              ...item,
-              ...form,
-              price: Number(form.price),
-              prepTimeMins: Number(form.prepTimeMins),
-            }
-          : item
-      )
-    );
+  function closeForm() {
     setEditingId(null);
     setForm(EMPTY_FORM);
-    setShowAddForm(false);
+    setShowForm(false);
   }
+
+  async function handleSubmit() {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    clearError();
+    if (editingId) {
+      await saveItem(editingId, form);
+    } else {
+      await addItem(form);
+    }
+    setSaving(false);
+    closeForm();
+  }
+
+  const inputClass = `px-3 py-2 rounded border text-sm ${isLight ? "bg-white border-zinc-300 text-zinc-900" : "bg-zinc-800 border-zinc-700 text-zinc-100"}`;
 
   return (
     <div className="p-5 h-full overflow-y-auto space-y-5">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="font-mono text-lg font-semibold">Menu Management</h2>
         <button
-          onClick={() => {
-            setEditingId(null);
-            setForm(EMPTY_FORM);
-            setShowAddForm((prev) => !prev);
-          }}
+          onClick={showForm ? closeForm : openAdd}
           className="px-4 py-2 rounded bg-orange-500 hover:bg-orange-400 text-black font-semibold text-sm"
         >
-          {showAddForm ? "Hide Form" : "Add New Item"}
+          {showForm ? "Hide Form" : "Add New Item"}
         </button>
       </div>
 
-      {showAddForm && (
-        <div className={`rounded p-4 grid md:grid-cols-2 gap-3 border ${isLight ? "bg-white border-zinc-300" : "bg-zinc-900 border-zinc-800"}`}>
+      {/* Error banner */}
+      {error && (
+        <div className="flex items-center justify-between gap-3 px-4 py-3 rounded border border-red-500/30 bg-red-500/10 text-red-400 text-sm">
+          <span>{error}</span>
+          <button onClick={clearError} className="text-xs underline shrink-0">
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Add / Edit form */}
+      {showForm && (
+        <div
+          className={`rounded p-4 grid md:grid-cols-2 gap-3 border ${isLight ? "bg-white border-zinc-300" : "bg-zinc-900 border-zinc-800"}`}
+        >
           <input
-            className={`px-3 py-2 rounded border ${isLight ? "bg-white border-zinc-300" : "bg-zinc-800 border-zinc-700"}`}
-            placeholder="Item name"
+            className={inputClass}
+            placeholder="Item name *"
             value={form.name}
-            onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+            onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
           />
           <input
-            className={`px-3 py-2 rounded border ${isLight ? "bg-white border-zinc-300" : "bg-zinc-800 border-zinc-700"}`}
+            className={inputClass}
             placeholder="Category"
             value={form.category}
-            onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
+            onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
           />
+          <label className="block">
+            <span className="text-xs text-zinc-400 mb-1 block">Price ($)</span>
+            <input
+              type="number"
+              className={inputClass + " w-full"}
+              placeholder="e.g. 8.99"
+              value={form.price}
+              onChange={(e) => setForm((p) => ({ ...p, price: Number(e.target.value) }))}
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs text-zinc-400 mb-1 block">Prep time (mins)</span>
+            <input
+              type="number"
+              className={inputClass + " w-full"}
+              placeholder="e.g. 10"
+              value={form.prepTimeMins}
+              onChange={(e) => setForm((p) => ({ ...p, prepTimeMins: Number(e.target.value) }))}
+            />
+          </label>
           <input
-            type="number"
-            className={`px-3 py-2 rounded border ${isLight ? "bg-white border-zinc-300" : "bg-zinc-800 border-zinc-700"}`}
-            placeholder="Price"
-            value={form.price}
-            onChange={(e) => setForm((prev) => ({ ...prev, price: Number(e.target.value) }))}
-          />
-          <input
-            type="number"
-            className={`px-3 py-2 rounded border ${isLight ? "bg-white border-zinc-300" : "bg-zinc-800 border-zinc-700"}`}
-            placeholder="Prep time mins"
-            value={form.prepTimeMins}
-            onChange={(e) => setForm((prev) => ({ ...prev, prepTimeMins: Number(e.target.value) }))}
-          />
-          <input
-            className={`px-3 py-2 rounded border md:col-span-2 ${isLight ? "bg-white border-zinc-300" : "bg-zinc-800 border-zinc-700"}`}
+            className={`${inputClass} md:col-span-2`}
             placeholder="Description"
             value={form.description}
-            onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+            onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
           />
           <input
-            className={`px-3 py-2 rounded border md:col-span-2 ${isLight ? "bg-white border-zinc-300" : "bg-zinc-800 border-zinc-700"}`}
+            className={`${inputClass} md:col-span-2`}
             placeholder="Image URL (for kiosk)"
             value={form.imageUrl}
-            onChange={(e) => setForm((prev) => ({ ...prev, imageUrl: e.target.value }))}
+            onChange={(e) => setForm((p) => ({ ...p, imageUrl: e.target.value }))}
           />
           <div className="md:col-span-2 flex gap-2">
-            {editingId ? (
-              <button onClick={saveEdit} className="px-4 py-2 rounded bg-blue-500 hover:bg-blue-400 text-white font-semibold text-sm">
-                Save Item
-              </button>
-            ) : (
-              <button onClick={addItem} className="px-4 py-2 rounded bg-orange-500 hover:bg-orange-400 text-black font-semibold text-sm">
-                Add Menu Item
-              </button>
-            )}
             <button
-              onClick={() => {
-                setEditingId(null);
-                setForm(EMPTY_FORM);
-                setShowAddForm(false);
-              }}
+              onClick={handleSubmit}
+              disabled={saving || !form.name.trim()}
+              className="px-4 py-2 rounded bg-orange-500 hover:bg-orange-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold text-sm"
+            >
+              {saving ? "Saving…" : editingId ? "Save Item" : "Add Menu Item"}
+            </button>
+            <button
+              onClick={closeForm}
               className={`px-4 py-2 rounded border text-sm ${isLight ? "border-zinc-300 hover:bg-zinc-100" : "border-zinc-700 hover:bg-zinc-800"}`}
             >
               Cancel
@@ -180,52 +178,106 @@ export default function MenuPage({ items, isLight = false, onChange }: MenuPageP
         </div>
       )}
 
-      <div className={`rounded overflow-hidden border ${isLight ? "bg-white border-zinc-300" : "bg-zinc-900 border-zinc-800"}`}>
-        <table className="w-full text-sm">
-          <thead className={isLight ? "bg-zinc-100 text-zinc-600" : "bg-zinc-800 text-zinc-400"}>
-            <tr>
-              <th className="text-left px-3 py-2">Name</th>
-              <th className="text-left px-3 py-2">Category</th>
-              <th className="text-left px-3 py-2">Image</th>
-              <th className="text-left px-3 py-2">Price</th>
-              <th className="text-left px-3 py-2">Available</th>
-              <th className="text-left px-3 py-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.id} className={`border-t ${isLight ? "border-zinc-200" : "border-zinc-800"}`}>
-                <td className="px-3 py-2">{item.name}</td>
-                <td className="px-3 py-2">{item.category}</td>
-                <td className="px-3 py-2">
-                  {item.imageUrl ? (
-                    <img src={item.imageUrl} alt={item.name} className="w-10 h-10 object-cover rounded border border-zinc-300" />
-                  ) : (
-                    <span className="text-xs text-zinc-500">No image</span>
-                  )}
-                </td>
-                <td className="px-3 py-2">${item.price.toFixed(2)}</td>
-                <td className="px-3 py-2">{item.isAvailable ? "Yes" : "No"}</td>
-                <td className="px-3 py-2 flex gap-2">
-                  <button onClick={() => startEdit(item)} className="px-2 py-1 rounded border border-blue-500/40 text-blue-300 text-xs">
-                    Edit
-                  </button>
-                  <button onClick={() => toggleAvailable(item.id)} className="px-2 py-1 rounded border border-zinc-600 text-xs">
-                    Toggle
-                  </button>
-                  <button onClick={() => removeItem(item.id)} className="px-2 py-1 rounded border border-red-500/40 text-red-300 text-xs">
-                    Remove
-                  </button>
-                </td>
+      {/* Table */}
+      <div
+        className={`rounded overflow-hidden border ${isLight ? "bg-white border-zinc-300" : "bg-zinc-900 border-zinc-800"}`}
+      >
+        {isLoading ? (
+          <div className="flex items-center justify-center gap-3 py-12 font-mono text-sm text-zinc-400">
+            <span className="w-4 h-4 rounded-full border-2 border-orange-500 border-t-transparent animate-spin" />
+            Loading menu…
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className={isLight ? "bg-zinc-100 text-zinc-600" : "bg-zinc-800 text-zinc-400"}>
+              <tr>
+                <th className="text-left px-3 py-2">Name</th>
+                <th className="text-left px-3 py-2">Category</th>
+                <th className="text-left px-3 py-2">Image</th>
+                <th className="text-left px-3 py-2">Price</th>
+                <th className="text-left px-3 py-2">Available</th>
+                <th className="text-left px-3 py-2">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {items.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-3 py-10 text-center font-mono text-xs text-zinc-500"
+                  >
+                    No menu items yet. Add your first item above.
+                  </td>
+                </tr>
+              ) : (
+                items.map((item) => (
+                  <tr
+                    key={item.id}
+                    className={`border-t ${isLight ? "border-zinc-200" : "border-zinc-800"}`}
+                  >
+                    <td className="px-3 py-2 font-medium">{item.name}</td>
+                    <td className={`px-3 py-2 text-xs ${isLight ? "text-zinc-500" : "text-zinc-400"}`}>
+                      {item.category || "—"}
+                    </td>
+                    <td className="px-3 py-2">
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="w-10 h-10 object-cover rounded border border-zinc-300"
+                        />
+                      ) : (
+                        <span className="text-xs text-zinc-500">No image</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">${item.price.toFixed(2)}</td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`font-mono text-xs ${item.isAvailable ? "text-green-400" : "text-zinc-500"}`}
+                      >
+                        {item.isAvailable ? "Yes" : "No"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openEdit(item)}
+                          className="px-2 py-1 rounded border border-blue-500/40 text-blue-300 text-xs hover:bg-blue-500/10"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => toggleAvailable(item.id)}
+                          className={`px-2 py-1 rounded border text-xs ${isLight ? "border-zinc-300 hover:bg-zinc-100" : "border-zinc-600 hover:bg-zinc-800"}`}
+                        >
+                          Toggle
+                        </button>
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          className="px-2 py-1 rounded border border-red-500/40 text-red-300 text-xs hover:bg-red-500/10"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
 
+      {/* Kiosk payload preview */}
       <div>
-        <h3 className="font-mono text-sm text-zinc-300 mb-2">Kiosk payload preview</h3>
-        <pre className={`border rounded p-3 text-xs overflow-x-auto ${isLight ? "bg-white border-zinc-300" : "bg-zinc-900 border-zinc-800"}`}>{kioskPayload}</pre>
+        <h3 className={`font-mono text-sm mb-2 ${isLight ? "text-zinc-600" : "text-zinc-300"}`}>
+          Kiosk payload preview
+        </h3>
+        <pre
+          className={`border rounded p-3 text-xs overflow-x-auto ${isLight ? "bg-white border-zinc-300" : "bg-zinc-900 border-zinc-800"}`}
+        >
+          {kioskPayload}
+        </pre>
       </div>
     </div>
   );

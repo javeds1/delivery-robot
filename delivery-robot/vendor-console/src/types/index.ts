@@ -1,9 +1,13 @@
 export type OrderStatus =
-  | "NEW"
+  | "PLACED"
   | "ACCEPTED"
   | "PREPARING"
   | "READY"
-  | "REJECTED";
+  | "DISPATCHED"
+  | "DELIVERED"
+  | "REJECTED"
+  | "FALLBACK"
+  | "CANCELLED";
 
 export interface OrderItem {
   id: string;
@@ -19,6 +23,7 @@ export interface Order {
   deliveryLocation: string;
   items: OrderItem[];
   status: OrderStatus;
+  vendorNote?: string;
   createdAt: Date;
   updatedAt: Date;
 }
