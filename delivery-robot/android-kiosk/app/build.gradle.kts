@@ -28,7 +28,7 @@ fun escapedForJavaStringLiteral(value: String): String =
         for (ch in value) {
             when (ch) {
                 '\\' -> append("\\\\")
-                '\"' -> append("\\\"")
+                '"' -> append("\\\"")
                 '\r' -> append("\\r")
                 '\n' -> append("\\n")
                 '\t' -> append("\\t")
