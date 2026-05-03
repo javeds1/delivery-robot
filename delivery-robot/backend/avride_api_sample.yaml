@@ -1,0 +1,995 @@
+components:
+  schemas:
+    CreateInput:
+      additionalProperties: false
+      properties:
+        clientName:
+          description: Optional name
+          examples:
+            - John Doe
+          type: string
+        dst:
+          oneOf:
+            - additionalProperties: false
+              properties:
+                address:
+                  examples:
+                    - '123 Main St, Austin, TX'
+                  type: string
+                lat:
+                  examples:
+                    - 30.3414
+                  format: double
+                  type: number
+                lon:
+                  examples:
+                    - -97.6768
+                  format: double
+                  type: number
+              required:
+                - lat
+                - lon
+              type: object
+            - properties:
+                extId:
+                  examples:
+                    - vendor-123
+                  type: string
+              required:
+                - extId
+              title: ExtID
+              type: object
+        email:
+          description: Optional email address for status updates
+          type: string
+        extId:
+          description: Optional external id
+          examples:
+            - order-123
+          type: string
+        id:
+          description: 'UUID (we recommend UUIDv4), should be the same on retries'
+          examples:
+            - ddf6f55b-e8e7-463a-bf71-0fa33711d833
+          type: string
+        phone:
+          description: >-
+            Optional phone number. Status updates will be sent to this phone
+            number by SMS
+          examples:
+            - '+15555551234'
+          type: string
+        robot:
+          description: Robot name
+          examples:
+            - robot-1
+          type: string
+        scheduledPickUp:
+          description: Now if omitted
+          format: date-time
+          type: string
+        src:
+          oneOf:
+            - additionalProperties: false
+              properties:
+                address:
+                  examples:
+                    - '123 Main St, Austin, TX'
+                  type: string
+                lat:
+                  examples:
+                    - 30.3414
+                  format: double
+                  type: number
+                lon:
+                  examples:
+                    - -97.6768
+                  format: double
+                  type: number
+              required:
+                - lat
+                - lon
+              type: object
+            - properties:
+                extId:
+                  examples:
+                    - vendor-123
+                  type: string
+              required:
+                - extId
+              title: ExtID
+              type: object
+        webhook:
+          description: >-
+            Optional URL. Status updates will be POSTed to this URL in the same
+            format as this endpoint response.
+          examples:
+            - 'https://example.com/updateOrder'
+          type: string
+      required:
+        - id
+        - dst
+      type: object
+    ETA:
+      additionalProperties: false
+      properties:
+        dropOff:
+          format: date-time
+          type: string
+        pickUp:
+          format: date-time
+          type: string
+        return:
+          format: date-time
+          type: string
+      type: object
+    ErrorDetail:
+      additionalProperties: false
+      properties:
+        location:
+          description: >-
+            Where the error occurred, e.g. 'body.items[3].tags' or
+            'path.thing-id'
+          type: string
+        message:
+          description: Error message text
+          type: string
+        value:
+          description: The value at the given location
+      type: object
+    ErrorModel:
+      additionalProperties: false
+      properties:
+        detail:
+          description: >-
+            A human-readable explanation specific to this occurrence of the
+            problem.
+          examples:
+            - Property foo is required but is missing.
+          type: string
+        errors:
+          description: Optional list of individual error details
+          items:
+            $ref: '#/components/schemas/ErrorDetail'
+          type:
+            - array
+            - 'null'
+        instance:
+          description: >-
+            A URI reference that identifies the specific occurrence of the
+            problem.
+          examples:
+            - 'https://example.com/error-log/abc123'
+          format: uri
+          type: string
+        status:
+          description: HTTP status code
+          examples:
+            - 400
+          format: int64
+          type: integer
+        title:
+          description: >-
+            A short, human-readable summary of the problem type. This value
+            should not change between occurrences of the error.
+          examples:
+            - Bad Request
+          type: string
+        type:
+          default: 'about:blank'
+          description: A URI reference to human-readable documentation for the error.
+          examples:
+            - 'https://example.com/errors/example'
+          format: uri
+          type: string
+      type: object
+    ExternalFeatures:
+      additionalProperties: false
+      properties:
+        adminOperations:
+          type: boolean
+        basicOperations:
+          type: boolean
+        cancelOrder:
+          type: boolean
+        createOrder:
+          type: boolean
+        dropOffOrder:
+          type: boolean
+        loadOrder:
+          type: boolean
+        manageOrder:
+          type: boolean
+        returnToPickUp:
+          type: boolean
+        viewOrder:
+          type: boolean
+        viewRobots:
+          type: boolean
+      type: object
+    LatLon:
+      additionalProperties: false
+      properties:
+        lat:
+          examples:
+            - 30.3414
+          format: double
+          type: number
+        lon:
+          examples:
+            - -97.6768
+          format: double
+          type: number
+      required:
+        - lat
+        - lon
+      type: object
+    NotFoundBody:
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      required:
+        - code
+        - message
+      type: object
+    OrderPoint:
+      additionalProperties: false
+      properties:
+        address:
+          examples:
+            - '123 Main St, Austin, TX'
+          type: string
+        extId:
+          examples:
+            - vendor-123
+          type: string
+        lat:
+          examples:
+            - 30.3414
+          format: double
+          type: number
+        lon:
+          examples:
+            - -97.6768
+          format: double
+          type: number
+      required:
+        - lat
+        - lon
+      type: object
+    OrderRequest:
+      additionalProperties: false
+      properties:
+        clientName:
+          type: string
+        dst:
+          $ref: '#/components/schemas/OrderRequestPoint'
+          title: OrderRequestPoint
+        src:
+          $ref: '#/components/schemas/OrderRequestPoint'
+          title: OrderRequestPoint
+      required:
+        - src
+        - dst
+      type: object
+    OrderRequestPoint:
+      additionalProperties: false
+      properties:
+        address:
+          examples:
+            - '123 Main St, Austin, TX'
+          type:
+            - string
+            - 'null'
+      required:
+        - address
+      type: object
+    OrderState:
+      additionalProperties: false
+      properties:
+        createdAt:
+          format: date-time
+          type: string
+        dst:
+          $ref: '#/components/schemas/OrderPoint'
+          title: OrderPoint
+        eta:
+          $ref: '#/components/schemas/ETA'
+        extId:
+          type:
+            - string
+            - 'null'
+        id:
+          type: string
+        ready:
+          type: boolean
+        request:
+          $ref: '#/components/schemas/OrderRequest'
+          title: OrderRequest
+        robots:
+          items:
+            $ref: '#/components/schemas/RobotState'
+          type:
+            - array
+            - 'null'
+        scheduledPickUp:
+          format: date-time
+          type: string
+        src:
+          $ref: '#/components/schemas/OrderPoint'
+          title: OrderPoint
+        status:
+          enum:
+            - new
+            - accepted
+            - pickUp
+            - pickUpTransaction
+            - transporting
+            - dropOff
+            - dropOffTransaction
+            - completed
+            - returnTransporting
+            - returnTransaction
+            - returnDropOff
+            - returnCompleted
+            - canceled
+          type: string
+      required:
+        - id
+        - extId
+        - src
+        - dst
+        - scheduledPickUp
+        - request
+        - createdAt
+        - status
+        - ready
+        - eta
+        - robots
+      type: object
+    Orders:
+      additionalProperties: false
+      properties:
+        orders:
+          items:
+            $ref: '#/components/schemas/OrderState'
+            title: OrderState
+          type:
+            - array
+            - 'null'
+      required:
+        - orders
+      type: object
+    Position:
+      additionalProperties: false
+      properties:
+        lat:
+          examples:
+            - 30.3414
+          format: double
+          type: number
+        lon:
+          examples:
+            - -97.6768
+          format: double
+          type: number
+        yaw:
+          description: 'Heading (East is 0, North is 90, South is -90).'
+          examples:
+            - -23.4
+          format: double
+          maximum: 180
+          minimum: -180
+          type: number
+      required:
+        - yaw
+        - lat
+        - lon
+      type: object
+    PredefinedOrder:
+      additionalProperties: false
+      properties:
+        dstExtId:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        srcExtId:
+          type: string
+      required:
+        - name
+        - srcExtId
+        - dstExtId
+      type: object
+    RobotState:
+      additionalProperties: false
+      properties:
+        deliveringOtherOrders:
+          type: boolean
+        name:
+          type: string
+        position:
+          $ref: '#/components/schemas/Position'
+        route:
+          items:
+            $ref: '#/components/schemas/LatLon'
+          type:
+            - array
+            - 'null'
+      required:
+        - name
+        - position
+        - route
+        - deliveringOtherOrders
+      type: object
+    Robots:
+      additionalProperties: false
+      properties:
+        robots:
+          items:
+            $ref: '#/components/schemas/RobotState'
+          type:
+            - array
+            - 'null'
+      required:
+        - robots
+      type: object
+    UIConfig:
+      additionalProperties: false
+      properties:
+        countryCode:
+          type: string
+        dispatchRadius:
+          format: double
+          type:
+            - number
+            - 'null'
+        newOrderSound:
+          type: boolean
+        omitPhone:
+          type: boolean
+        predefinedOrders:
+          items:
+            $ref: '#/components/schemas/PredefinedOrder'
+          type:
+            - array
+            - 'null'
+      required:
+        - dispatchRadius
+        - countryCode
+        - omitPhone
+        - newOrderSound
+      type: object
+    UIUser:
+      additionalProperties: false
+      properties:
+        config:
+          $ref: '#/components/schemas/UIConfig'
+        email:
+          type: string
+        features:
+          $ref: '#/components/schemas/ExternalFeatures'
+        firstName:
+          type:
+            - string
+            - 'null'
+        lastName:
+          type:
+            - string
+            - 'null'
+        login:
+          type: string
+        partnerId:
+          type: string
+        roles:
+          items:
+            type: string
+          type:
+            - array
+            - 'null'
+      required:
+        - firstName
+        - lastName
+        - login
+        - email
+        - roles
+        - partnerId
+        - features
+      type: object
+info:
+  title: Delivery API
+  version: 1.0.0
+openapi: 3.1.0
+paths:
+  /api/v1/orders:
+    get:
+      description: Get all orders that are currently in progress
+      feature: ViewOrder
+      operationId: get-orders
+      parameters:
+        - explode: false
+          in: query
+          name: robot
+          schema:
+            type: string
+        - explode: false
+          in: query
+          name: only_active
+          schema:
+            type: boolean
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Orders'
+          description: OK
+        '401':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Unauthorized
+        '403':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Forbidden
+        '422':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Unprocessable Entity
+        '500':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Internal Server Error
+      summary: Get actual orders
+    post:
+      feature: CreateOrder
+      operationId: create-order
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInput'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderState'
+                title: OrderState
+          description: Created
+        '400':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Bad Request
+        '403':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Forbidden
+        '404':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Not Found
+        '409':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Conflict
+        '422':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Unprocessable Entity
+        '500':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Internal Server Error
+        '503':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Service Unavailable
+      summary: Create order
+  '/api/v1/orders/{orderId}':
+    get:
+      feature: ViewOrder
+      operationId: get-order
+      parameters:
+        - description: Order UUID
+          example: ddf6f55b-e8e7-463a-bf71-0fa33711d833
+          in: path
+          name: orderId
+          required: true
+          schema:
+            description: Order UUID
+            examples:
+              - ddf6f55b-e8e7-463a-bf71-0fa33711d833
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderState'
+                title: OrderState
+          description: OK
+        '403':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Forbidden
+        '404':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Not Found
+        '422':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Unprocessable Entity
+        '500':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Internal Server Error
+      summary: Get order
+  '/api/v1/orders/{orderId}/cancel':
+    post:
+      feature: CancelOrder
+      operationId: cancel-order
+      parameters:
+        - description: Order UUID
+          example: ddf6f55b-e8e7-463a-bf71-0fa33711d833
+          in: path
+          name: orderId
+          required: true
+          schema:
+            description: Order UUID
+            examples:
+              - ddf6f55b-e8e7-463a-bf71-0fa33711d833
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderState'
+                title: OrderState
+          description: OK
+        '403':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Forbidden
+        '404':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Not Found
+        '409':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Conflict
+        '422':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Unprocessable Entity
+        '500':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Internal Server Error
+      summary: Cancel order
+  '/api/v1/orders/{orderId}/close':
+    post:
+      feature: LoadOrder
+      operationId: close
+      parameters:
+        - description: Order UUID
+          example: ddf6f55b-e8e7-463a-bf71-0fa33711d833
+          in: path
+          name: orderId
+          required: true
+          schema:
+            description: Order UUID
+            examples:
+              - ddf6f55b-e8e7-463a-bf71-0fa33711d833
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderState'
+                title: OrderState
+          description: OK
+        '403':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Forbidden
+        '404':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Not Found
+        '409':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Conflict
+        '422':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Unprocessable Entity
+        '500':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Internal Server Error
+      summary: Close lid
+  '/api/v1/orders/{orderId}/open':
+    post:
+      feature: LoadOrder
+      operationId: open
+      parameters:
+        - description: Order UUID
+          example: ddf6f55b-e8e7-463a-bf71-0fa33711d833
+          in: path
+          name: orderId
+          required: true
+          schema:
+            description: Order UUID
+            examples:
+              - ddf6f55b-e8e7-463a-bf71-0fa33711d833
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderState'
+                title: OrderState
+          description: OK
+        '403':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Forbidden
+        '404':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Not Found
+        '409':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Conflict
+        '422':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Unprocessable Entity
+        '500':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Internal Server Error
+      summary: Open lid
+  '/api/v1/orders/{orderId}/ready':
+    post:
+      feature: ManageOrder
+      operationId: ready-order
+      parameters:
+        - description: Order UUID
+          example: ddf6f55b-e8e7-463a-bf71-0fa33711d833
+          in: path
+          name: orderId
+          required: true
+          schema:
+            description: Order UUID
+            examples:
+              - ddf6f55b-e8e7-463a-bf71-0fa33711d833
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderState'
+                title: OrderState
+          description: OK
+        '403':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Forbidden
+        '404':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Not Found
+        '409':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Conflict
+        '422':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Unprocessable Entity
+        '500':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Internal Server Error
+      summary: Mark order as ready
+  '/api/v1/orders/{orderId}/return-to-pickup':
+    post:
+      feature: ReturnToPickUp
+      operationId: return-to-pick-up
+      parameters:
+        - description: Order UUID
+          example: ddf6f55b-e8e7-463a-bf71-0fa33711d833
+          in: path
+          name: orderId
+          required: true
+          schema:
+            description: Order UUID
+            examples:
+              - ddf6f55b-e8e7-463a-bf71-0fa33711d833
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderState'
+                title: OrderState
+          description: OK
+        '403':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Forbidden
+        '404':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Not Found
+        '409':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Conflict
+        '422':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Unprocessable Entity
+        '500':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Internal Server Error
+      summary: Return to pick up
+  /api/v1/robots:
+    get:
+      feature: ViewRobots
+      operationId: get-robots
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Robots'
+          description: OK
+        '401':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Unauthorized
+        '403':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Forbidden
+        '500':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Internal Server Error
+      summary: Get available robots
+  /api/v1/user:
+    get:
+      feature: BasicOperations
+      operationId: get-user
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UIUser'
+          description: OK
+        '401':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Unauthorized
+        '403':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Forbidden
+        '500':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Internal Server Error
+      summary: '[Users] Get current user'

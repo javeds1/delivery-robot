@@ -29,12 +29,14 @@ INSTALLED_APPS = [
     "apps.menu",
     "apps.orders",
     "apps.dispatch",
+    "apps.mock_delivery",
     "apps.notifications",
 ]
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -101,6 +103,10 @@ CHANNEL_LAYERS = {
     }
 }
 
+DISPATCH_PROVIDER = os.getenv("DISPATCH_PROVIDER", "mock")
+MOCK_DELIVERY_ENABLED = os.getenv("MOCK_DELIVERY_ENABLED", "true").lower() == "true"
+MOCK_DELIVERY_STATE_MODE = os.getenv("MOCK_DELIVERY_STATE_MODE", "deterministic")
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -115,5 +121,14 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
