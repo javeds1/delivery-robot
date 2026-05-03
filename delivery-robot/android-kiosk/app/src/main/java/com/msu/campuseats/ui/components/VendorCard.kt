@@ -23,22 +23,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.msu.campuseats.data.models.Vendor
+import com.msu.campuseats.ui.theme.kioskScale
 
 @Composable
 fun VendorCard(vendor: Vendor, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val scale = kioskScale()
     Card(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        shape = RoundedCornerShape((12 * scale).dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = (3 * scale).dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.padding((16 * scale).dp), verticalArrangement = Arrangement.spacedBy((8 * scale).dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .background(Color(0xFFFFF3E0), RoundedCornerShape(10.dp))
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .background(Color(0xFFFFF3E0), RoundedCornerShape((10 * scale).dp))
+                        .padding(horizontal = (12 * scale).dp, vertical = (8 * scale).dp)
                 ) {
                     Text(text = vendor.emoji)
                 }
@@ -51,11 +53,11 @@ fun VendorCard(vendor: Vendor, onClick: () -> Unit, modifier: Modifier = Modifie
             }
 
             Text(text = vendor.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy((8 * scale).dp)) {
                 Text(text = vendor.cuisine, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 Text(text = vendor.estimatedTime, style = MaterialTheme.typography.labelMedium)
             }
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height((2 * scale).dp))
         }
     }
 }

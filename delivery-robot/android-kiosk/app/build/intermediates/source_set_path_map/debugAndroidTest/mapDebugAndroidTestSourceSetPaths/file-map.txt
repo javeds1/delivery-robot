@@ -1,4 +1,0 @@
-com.msu.campuseats.test.app-androidTest-0 C:\delivery-robot\delivery-robot\android-kiosk\app\build\generated\res\resValues\androidTest\debug
-com.msu.campuseats.test.app-mergeDebugAndroidTestResources-1 C:\delivery-robot\delivery-robot\android-kiosk\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\merged.dir
-com.msu.campuseats.test.app-mergeDebugAndroidTestResources-2 C:\delivery-robot\delivery-robot\android-kiosk\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\stripped.dir
-com.msu.campuseats.test.app-debugAndroidTest-3 C:\delivery-robot\delivery-robot\android-kiosk\app\build\intermediates\merged_res\debugAndroidTest\mergeDebugAndroidTestResources

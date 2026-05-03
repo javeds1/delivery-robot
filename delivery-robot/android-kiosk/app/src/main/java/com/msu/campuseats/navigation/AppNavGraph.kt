@@ -9,7 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.msu.campuseats.CartViewModel
-import com.msu.campuseats.data.MockDataSource
+import com.msu.campuseats.data.BackendRepository
 import com.msu.campuseats.ui.cart.CartScreen
 import com.msu.campuseats.ui.confirmation.OrderConfirmationScreen
 import com.msu.campuseats.ui.home.HomeScreen
@@ -22,7 +22,7 @@ object AppRoutes {
     const val HOME = "home"
     const val MENU = "menu/{vendorId}"
     const val CART = "cart"
-    const val CONFIRMATION = "confirmation/{location}"
+    const val CONFIRMATION = "confirmation/{orderId}/{location}"
 }
 
 @Composable
@@ -56,25 +56,43 @@ fun AppNavGraph(cartViewModel: CartViewModel) {
                 cartViewModel = cartViewModel,
                 onBack = { navController.popBackStack() },
                 onBrowseMenu = { navController.popBackStack() },
-                onPlaceOrder = { location ->
-                    val encoded = URLEncoder.encode(location, StandardCharsets.UTF_8.toString())
-                    navController.navigate("confirmation/$encoded")
+                onPlaceOrder = { location, name, phone, email ->
+                    val cartItems = cartViewModel.currentCartItems()
+                    val orderId = BackendRepository.placeOrder(
+                        cartItems = cartItems,
+                        location = location,
+                        studentName = name,
+                        phone = phone,
+                        email = email
+                    )
+                    if (orderId == null) {
+                        false
+                    } else {
+                        val encoded = URLEncoder.encode(location, StandardCharsets.UTF_8.toString())
+                        navController.navigate("confirmation/$orderId/$encoded")
+                        true
+                    }
                 }
             )
         }
 
         composable(
             route = AppRoutes.CONFIRMATION,
-            arguments = listOf(navArgument("location") { type = NavType.StringType })
+            arguments = listOf(
+                navArgument("orderId") { type = NavType.IntType },
+                navArgument("location") { type = NavType.StringType },
+            ),
         ) { backStack ->
             val items by cartViewModel.cartItems.collectAsState()
             val total by cartViewModel.total.collectAsState(0.0)
+            val orderId = backStack.arguments?.getInt("orderId") ?: 0
             val location = URLDecoder.decode(
                 backStack.arguments?.getString("location").orEmpty(),
                 StandardCharsets.UTF_8.toString()
             )
-            val vendorName = MockDataSource.getVendor(cartViewModel.cartVendorName())?.name ?: "Campus Eats"
+            val vendorName = cartViewModel.cartVendorName().ifBlank { "Campus Eats" }
             OrderConfirmationScreen(
+                orderId = orderId,
                 vendorName = vendorName,
                 items = items,
                 total = total,

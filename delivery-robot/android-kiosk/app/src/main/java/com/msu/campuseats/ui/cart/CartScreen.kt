@@ -33,14 +33,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.msu.campuseats.CartViewModel
-import com.msu.campuseats.data.MockDataSource
 import com.msu.campuseats.ui.components.QuantityStepper
+import com.msu.campuseats.ui.theme.kioskScale
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,8 +50,9 @@ fun CartScreen(
     cartViewModel: CartViewModel,
     onBack: () -> Unit,
     onBrowseMenu: () -> Unit,
-    onPlaceOrder: (String) -> Unit
+    onPlaceOrder: suspend (location: String, name: String, phone: String, email: String) -> Boolean
 ) {
+    val scale = kioskScale()
     val cartItems by cartViewModel.cartItems.collectAsState()
     val subtotal by cartViewModel.subtotal.collectAsState(0.0)
     val tax by cartViewModel.tax.collectAsState(0.0)
@@ -57,7 +60,13 @@ fun CartScreen(
     var expanded by remember { mutableStateOf(false) }
     val locations = listOf("Student Center", "Student Rec Center", "Blanton Hall", "University Hall")
     var selectedLocation by remember { mutableStateOf("Select delivery point") }
-    val vendorName = MockDataSource.getVendor(cartViewModel.cartVendorName())?.name ?: "Campus Eats"
+    val vendorName = cartViewModel.cartVendorName().ifBlank { "Campus Eats" }
+    val scope = rememberCoroutineScope()
+    var isPlacingOrder by remember { mutableStateOf(false) }
+    var placeOrderError by remember { mutableStateOf<String?>(null) }
+    var guestName by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -81,14 +90,14 @@ fun CartScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(24.dp),
+                    .padding((24 * scale).dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text("\uD83D\uDED2", style = MaterialTheme.typography.displaySmall)
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("Your cart is empty", style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height((16 * scale).dp))
                 Button(onClick = onBrowseMenu, modifier = Modifier.fillMaxWidth()) {
                     Text("Browse Menu")
                 }
@@ -98,9 +107,9 @@ fun CartScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(16.dp)
+                    .padding((16 * scale).dp)
             ) {
-                LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy((10 * scale).dp)) {
                     items(cartItems) { cartItem ->
                         Card(
                             shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
@@ -109,8 +118,8 @@ fun CartScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    .padding((12 * scale).dp),
+                                horizontalArrangement = Arrangement.spacedBy((12 * scale).dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
@@ -137,12 +146,19 @@ fun CartScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = (3 * scale).dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(modifier = Modifier.padding((16 * scale).dp), verticalArrangement = Arrangement.spacedBy((8 * scale).dp)) {
                         SummaryRow("Subtotal", subtotal)
                         SummaryRow("Estimated tax (8.875%)", tax)
                         SummaryRow("Total", total, true)
+                        if (!placeOrderError.isNullOrBlank()) {
+                            Text(
+                                text = placeOrderError.orEmpty(),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
 
                         ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
                             OutlinedTextField(
@@ -166,15 +182,57 @@ fun CartScreen(
                                 }
                             }
                         }
+                        OutlinedTextField(
+                            value = guestName,
+                            onValueChange = { guestName = it },
+                            label = { Text("Name (optional)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = phone,
+                            onValueChange = { phone = it },
+                            label = { Text("Phone") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = email,
+                            onValueChange = { email = it },
+                            label = { Text("Email") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            text = "Phone or email is required.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
 
                         Button(
-                            onClick = { onPlaceOrder(selectedLocation) },
-                            enabled = selectedLocation != "Select delivery point",
+                            onClick = {
+                                scope.launch {
+                                    isPlacingOrder = true
+                                    placeOrderError = null
+                                    val success = onPlaceOrder(
+                                        selectedLocation,
+                                        guestName.trim(),
+                                        phone.trim(),
+                                        email.trim()
+                                    )
+                                    if (!success) {
+                                        placeOrderError = "Could not place order. Please try again."
+                                    }
+                                    isPlacingOrder = false
+                                }
+                            },
+                            enabled = selectedLocation != "Select delivery point" &&
+                                (phone.isNotBlank() || email.isNotBlank()) &&
+                                !isPlacingOrder,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp)
+                                .height((58 * scale).dp)
                         ) {
-                            Text("Place Order")
+                            Text(if (isPlacingOrder) "Placing..." else "Place Order")
                         }
                     }
                 }

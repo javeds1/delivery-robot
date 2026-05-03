@@ -30,15 +30,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.msu.campuseats.data.models.CartItem
+import com.msu.campuseats.ui.theme.kioskScale
 
 @Composable
 fun OrderConfirmationScreen(
+    orderId: Int,
     vendorName: String,
     items: List<CartItem>,
     total: Double,
     location: String,
     onBackHome: () -> Unit
 ) {
+    val scaleFactor = kioskScale()
     var animate by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(targetValue = if (animate) 1f else 0.4f, animationSpec = spring())
     val steps = listOf("Order Received", "Preparing", "Ready", "On Its Way", "Delivered")
@@ -50,8 +53,8 @@ fun OrderConfirmationScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding((20 * scaleFactor).dp),
+        verticalArrangement = Arrangement.spacedBy((12 * scaleFactor).dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -60,21 +63,27 @@ fun OrderConfirmationScreen(
             modifier = Modifier.scale(scale)
         )
         Text("Order Placed!", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(
+            text = "Order #$orderId",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
 
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(modifier = Modifier.padding((16 * scaleFactor).dp), verticalArrangement = Arrangement.spacedBy((6 * scaleFactor).dp)) {
                 Text("Vendor: $vendorName")
                 Text("Delivery point: $location")
                 Text("Estimated delivery: 20-25 minutes", fontWeight = FontWeight.SemiBold)
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height((4 * scaleFactor).dp))
                 items.forEach {
                     Text("- ${it.menuItem.name} x${it.quantity}")
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height((4 * scaleFactor).dp))
                 Text("Total: $${"%.2f".format(total)}", fontWeight = FontWeight.Bold)
             }
         }
@@ -82,11 +91,11 @@ fun OrderConfirmationScreen(
         Text("Order Status", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy((8 * scaleFactor).dp)
         ) {
             steps.forEachIndexed { index, label ->
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    androidx.compose.foundation.Canvas(modifier = Modifier.size(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy((8 * scaleFactor).dp)) {
+                    androidx.compose.foundation.Canvas(modifier = Modifier.size((14 * scaleFactor).dp)) {
                         drawCircle(color = if (index == 0) Color(0xFF0F766E) else Color.LightGray)
                     }
                     Text(label, fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal)
@@ -99,7 +108,7 @@ fun OrderConfirmationScreen(
             onClick = onBackHome,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp),
+                .height((60 * scaleFactor).dp),
             shape = CircleShape
         ) {
             Text("Back to Home")

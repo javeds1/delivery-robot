@@ -80,8 +80,10 @@ class CartViewModel : ViewModel() {
     }
 
     fun cartVendorName(): String {
-        return _cartItems.value.firstOrNull()?.menuItem?.vendorId ?: ""
+        return _cartItems.value.firstOrNull()?.menuItem?.vendorName ?: ""
     }
+
+    fun currentCartItems(): List<CartItem> = _cartItems.value
 }
 
 private fun Double.round2(): Double = round(this * 100) / 100
