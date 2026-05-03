@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -33,6 +34,7 @@ import com.msu.campuseats.ui.components.AiChatBottomSheet
 import com.msu.campuseats.ui.components.AiChatFab
 import com.msu.campuseats.ui.components.CartFab
 import com.msu.campuseats.ui.components.VendorCard
+import com.msu.campuseats.ui.theme.kioskScale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,8 +43,11 @@ fun HomeScreen(
     onVendorClick: (String) -> Unit,
     onCartClick: () -> Unit
 ) {
+    val scale = kioskScale()
     val homeViewModel: HomeViewModel = viewModel()
     val vendors by homeViewModel.vendors.collectAsState()
+    val isLoading by homeViewModel.isLoading.collectAsState()
+    val error by homeViewModel.error.collectAsState()
     val cartItems by cartViewModel.cartItems.collectAsState()
     val total by cartViewModel.total.collectAsState(0.0)
     var showAiChat by remember { mutableStateOf(false) }
@@ -62,7 +67,7 @@ fun HomeScreen(
             )
         },
         floatingActionButton = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy((12 * scale).dp)) {
                 AiChatFab(onClick = { showAiChat = true })
                 CartFab(
                     itemCount = cartItems.sumOf { it.quantity },
@@ -79,8 +84,8 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            contentPadding = PaddingValues((16 * scale).dp),
+            verticalArrangement = Arrangement.spacedBy((12 * scale).dp)
         ) {
             item {
                 OutlinedTextField(
@@ -98,6 +103,20 @@ fun HomeScreen(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
+            }
+            if (isLoading) {
+                item {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+            }
+            if (!error.isNullOrBlank()) {
+                item {
+                    Text(
+                        text = error.orEmpty(),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
             items(vendors) { vendor ->
                 VendorCard(

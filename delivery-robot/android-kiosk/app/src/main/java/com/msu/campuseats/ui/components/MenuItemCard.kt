@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.msu.campuseats.data.models.MenuItem
+import com.msu.campuseats.ui.theme.kioskScale
 
 @Composable
 fun MenuItemCard(
@@ -34,22 +35,23 @@ fun MenuItemCard(
     onDecrement: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val scale = kioskScale()
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        shape = RoundedCornerShape((12 * scale).dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = (3 * scale).dp)
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding((12 * scale).dp),
+            horizontalArrangement = Arrangement.spacedBy((12 * scale).dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(56.dp)
-                    .background(Color(0xFFFFE0B2), RoundedCornerShape(8.dp))
+                    .size((66 * scale).dp)
+                    .background(Color(0xFFFFE0B2), RoundedCornerShape((8 * scale).dp))
             )
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy((4 * scale).dp)) {
                 Text(text = menuItem.name, style = MaterialTheme.typography.titleSmall)
                 Text(
                     text = menuItem.description,
@@ -63,8 +65,8 @@ fun MenuItemCard(
             if (quantityInCart <= 0) {
                 Button(
                     onClick = onAdd,
-                    modifier = Modifier.defaultMinSize(minHeight = 48.dp),
-                    shape = RoundedCornerShape(12.dp)
+                    modifier = Modifier.defaultMinSize(minHeight = (56 * scale).dp),
+                    shape = RoundedCornerShape((12 * scale).dp)
                 ) {
                     Text("+ Add")
                 }
@@ -76,6 +78,6 @@ fun MenuItemCard(
                 )
             }
         }
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height((4 * scale).dp))
     }
 }
