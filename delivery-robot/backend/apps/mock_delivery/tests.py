@@ -1,6 +1,9 @@
 from django.contrib.auth import get_user_model
-from django.test import override_settings
+from django.test import TestCase, override_settings
 from rest_framework.test import APITestCase
+
+from apps.orders.models import Order
+from apps.vendors.models import Vendor
 
 
 class MockDeliveryApiTests(APITestCase):
@@ -65,3 +68,57 @@ class MockDeliveryApiTests(APITestCase):
         cancel_response = self.client.post(f"/api/mock-delivery/orders/{order_id}/cancel")
         self.assertEqual(cancel_response.status_code, 200)
         self.assertEqual(cancel_response.data["status"], "canceled")
+
+
+class RobotSimulatorAdminTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.admin = user_model.objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password123",
+        )
+        self.vendor_user = user_model.objects.create_user(
+            username="vendor_manager",
+            email="vendor@example.com",
+            password="password123",
+        )
+        self.vendor = Vendor.objects.create(
+            name="Cafe A",
+            location_label="Cafe Pickup",
+            manager=self.vendor_user,
+        )
+        self.order = Order.objects.create(
+            vendor=self.vendor,
+            student_name="Student Test",
+            phone="555-0100",
+            delivery_location="Dorm 7",
+            status=Order.Status.PLACED,
+        )
+        self.client.login(username="admin", password="password123")
+
+    def test_simulator_dashboard_loads(self):
+        response = self.client.get("/admin/robot-simulator/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Robot Simulator Dashboard")
+
+    def test_dispatch_then_advance_to_complete(self):
+        self.client.post(f"/admin/robot-simulator/orders/{self.order.id}/status/ACCEPTED/")
+        self.client.post(f"/admin/robot-simulator/orders/{self.order.id}/status/PREPARING/")
+        self.client.post(f"/admin/robot-simulator/orders/{self.order.id}/status/READY/")
+
+        dispatch_response = self.client.post(f"/admin/robot-simulator/orders/{self.order.id}/dispatch/")
+        self.assertEqual(dispatch_response.status_code, 200)
+
+        for _ in range(5):
+            advance_response = self.client.post(f"/admin/robot-simulator/orders/{self.order.id}/advance/")
+            self.assertEqual(advance_response.status_code, 200)
+
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.Status.DELIVERED)
+
+    def test_vendor_status_step_actions(self):
+        response = self.client.post(f"/admin/robot-simulator/orders/{self.order.id}/status/ACCEPTED/")
+        self.assertEqual(response.status_code, 200)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.Status.ACCEPTED)

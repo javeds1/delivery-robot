@@ -81,6 +81,7 @@ POSTGRES_SSLMODE=require
 - `POST /api/mock-delivery/orders/<orderId>/ready`
 - `POST /api/mock-delivery/orders/<orderId>/return-to-pickup`
 - `GET /api/mock-delivery/user`
+- `GET /admin/robot-simulator/` (staff-only robot simulation dashboard)
 
 ## Temporary mock delivery toggles
 

@@ -1,0 +1,185 @@
+{% extends "admin/base_site.html" %}
+{% block extrastyle %}
+<style>
+  .sim-wrap { display: grid; gap: 16px; margin-top: 18px; }
+  .sim-cards { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 12px; }
+  .sim-card { background: #111827; color: #e5e7eb; border-radius: 12px; padding: 14px; }
+  .sim-card h3 { margin: 0; font-size: 14px; color: #93c5fd; }
+  .sim-card p { margin: 6px 0 0; font-size: 26px; font-weight: 700; }
+  .sim-table-wrap { background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; }
+  .sim-table { width: 100%; border-collapse: collapse; }
+  .sim-table th, .sim-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+  .sim-table th { background: #f8fafc; text-align: left; color: #334155; }
+  .sim-pill { border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 600; display: inline-block; }
+  .sim-pill.placed { background: #e2e8f0; color: #334155; }
+  .sim-pill.accepted { background: #dbeafe; color: #1e3a8a; }
+  .sim-pill.preparing { background: #fce7f3; color: #9d174d; }
+  .sim-pill.ready { background: #fef3c7; color: #92400e; }
+  .sim-pill.dispatched { background: #dbeafe; color: #1e3a8a; }
+  .sim-pill.delivered { background: #dcfce7; color: #166534; }
+  .sim-pill.mock { background: #ede9fe; color: #5b21b6; }
+  .sim-actions { display: flex; gap: 8px; }
+  .btn { border: 0; border-radius: 8px; padding: 7px 10px; cursor: pointer; font-weight: 600; }
+  .btn.primary { background: #2563eb; color: #fff; }
+  .btn.secondary { background: #0f766e; color: #fff; }
+  .btn.tertiary { background: #7c3aed; color: #fff; }
+  .btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+  .sim-tools { display: flex; justify-content: space-between; align-items: center; }
+  .sim-link { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 10px; text-decoration: none; color: #1e293b; }
+  .sim-toast { display: none; padding: 10px 12px; border-radius: 10px; font-size: 13px; font-weight: 600; }
+  .sim-toast.error { display: block; background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+  .sim-toast.success { display: block; background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sim-wrap">
+  <div class="sim-tools">
+    <h1 style="margin:0;">Robot Simulator Dashboard</h1>
+    <a class="sim-link" href="/api/mock-delivery/orders" target="_blank" rel="noopener">Open Mock API</a>
+  </div>
+  <div id="sim-toast" class="sim-toast"></div>
+
+  <div class="sim-cards">
+    <div class="sim-card"><h3>Ready Orders</h3><p id="count-ready">0</p></div>
+    <div class="sim-card"><h3>Preparing</h3><p id="count-preparing">0</p></div>
+    <div class="sim-card"><h3>Dispatched</h3><p id="count-dispatched">0</p></div>
+    <div class="sim-card"><h3>Delivered</h3><p id="count-delivered">0</p></div>
+  </div>
+
+  <div class="sim-table-wrap">
+    <table class="sim-table">
+      <thead>
+        <tr>
+          <th>Order</th>
+          <th>Vendor</th>
+          <th>Route</th>
+          <th>Order Status</th>
+          <th>Dispatch</th>
+          <th>Mock Robot State</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="sim-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const stateUrl = "{{ simulator_state_url|escapejs }}";
+  const setStatusUrlTpl = "{{ simulator_set_status_url|escapejs }}";
+  const dispatchUrlTpl = "{{ simulator_dispatch_url|escapejs }}";
+  const advanceUrlTpl = "{{ simulator_advance_url|escapejs }}";
+
+  function csrfToken() {
+    const m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : "";
+  }
+
+  function statusClass(value) {
+    if (value === "READY") return "ready";
+    if (value === "PLACED") return "placed";
+    if (value === "ACCEPTED") return "accepted";
+    if (value === "PREPARING") return "preparing";
+    if (value === "DISPATCHED") return "dispatched";
+    if (value === "DELIVERED") return "delivered";
+    return "mock";
+  }
+
+  async function post(url) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {"X-CSRFToken": csrfToken()},
+      credentials: "same-origin"
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.detail || "Action failed");
+    }
+    return res.json();
+  }
+
+  function showToast(message, type = "success") {
+    const el = document.getElementById("sim-toast");
+    el.className = `sim-toast ${type}`;
+    el.textContent = message;
+    setTimeout(() => {
+      el.className = "sim-toast";
+      el.textContent = "";
+    }, 2600);
+  }
+
+  async function refresh() {
+    const res = await fetch(stateUrl, {credentials: "same-origin"});
+    const data = await res.json();
+    const body = document.getElementById("sim-body");
+    body.innerHTML = "";
+
+    let ready = 0, preparing = 0, dispatched = 0, delivered = 0;
+    data.orders.forEach((row) => {
+      if (row.order_status === "READY") ready++;
+      if (row.order_status === "PREPARING") preparing++;
+      if (row.order_status === "DISPATCHED") dispatched++;
+      if (row.order_status === "DELIVERED") delivered++;
+
+      const nextVendorAction = row.next_vendor_action;
+      const vendorBtn = nextVendorAction
+        ? `<button class="btn tertiary">${nextVendorAction.label}</button>`
+        : `<button class="btn tertiary" disabled>Vendor Step Complete</button>`;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>#${row.order_id}<br><small>${row.student_name}</small></td>
+        <td>${row.vendor_name}</td>
+        <td><small>${row.pickup}</small><br><small>${row.dropoff}</small></td>
+        <td><span class="sim-pill ${statusClass(row.order_status)}">${row.order_status}</span></td>
+        <td>${row.dispatch_status || "-"}</td>
+        <td><span class="sim-pill mock">${row.mock_status || "not_created"}</span></td>
+        <td class="sim-actions">
+          ${vendorBtn}
+          <button class="btn primary" ${row.order_status !== "READY" ? "disabled" : ""}>Dispatch Robot</button>
+          <button class="btn secondary" ${row.order_status !== "DISPATCHED" ? "disabled" : ""}>Advance Delivery</button>
+        </td>
+      `;
+      const [vendorBtnEl, dispatchBtn, advanceBtn] = tr.querySelectorAll("button");
+      vendorBtnEl.addEventListener("click", async () => {
+        if (!nextVendorAction) return;
+        try {
+          await post(setStatusUrlTpl.replace("ORDER_ID", row.order_id).replace("TARGET_STATUS", nextVendorAction.target));
+          showToast(`Order #${row.order_id}: ${nextVendorAction.label}`);
+          await refresh();
+        } catch (err) {
+          showToast(err.message || "Could not update order status.", "error");
+        }
+      });
+      dispatchBtn.addEventListener("click", async () => {
+        try {
+          await post(dispatchUrlTpl.replace("ORDER_ID", row.order_id));
+          showToast(`Order #${row.order_id} dispatched to robot.`);
+          await refresh();
+        } catch (err) {
+          showToast(err.message || "Dispatch failed.", "error");
+        }
+      });
+      advanceBtn.addEventListener("click", async () => {
+        try {
+          await post(advanceUrlTpl.replace("ORDER_ID", row.order_id));
+          showToast(`Order #${row.order_id} moved to next delivery step.`);
+          await refresh();
+        } catch (err) {
+          showToast(err.message || "Advance failed.", "error");
+        }
+      });
+      body.appendChild(tr);
+    });
+
+    document.getElementById("count-ready").textContent = ready;
+    document.getElementById("count-preparing").textContent = preparing;
+    document.getElementById("count-dispatched").textContent = dispatched;
+    document.getElementById("count-delivered").textContent = delivered;
+  }
+
+  refresh();
+  setInterval(refresh, 5000);
+</script>
+{% endblock %}
