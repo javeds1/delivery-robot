@@ -1,5 +1,8 @@
+import json
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
+from django.urls import reverse
 from rest_framework.test import APITestCase
 
 from apps.orders.models import Order
@@ -70,6 +73,9 @@ class MockDeliveryApiTests(APITestCase):
         self.assertEqual(cancel_response.data["status"], "canceled")
 
 
+@override_settings(
+    CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}},
+)
 class RobotSimulatorAdminTests(TestCase):
     def setUp(self):
         user_model = get_user_model()
@@ -101,6 +107,18 @@ class RobotSimulatorAdminTests(TestCase):
         response = self.client.get("/admin/robot-simulator/")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Robot Simulator Dashboard")
+
+    def test_admin_home_links_to_simulator(self):
+        sim_url = reverse("admin:robot_simulator_dashboard")
+        response = self.client.get("/admin/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, sim_url)
+        self.assertContains(response, "Open Robot Simulator")
+
+    def test_mock_orders_list_accepted_with_admin_session(self):
+        response = self.client.get("/api/mock-delivery/orders")
+        self.assertEqual(response.status_code, 200, response.content.decode()[:500])
+        self.assertIn("orders", json.loads(response.content))
 
     def test_dispatch_then_advance_to_complete(self):
         self.client.post(f"/admin/robot-simulator/orders/{self.order.id}/status/ACCEPTED/")

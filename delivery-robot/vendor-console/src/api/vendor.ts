@@ -29,8 +29,10 @@ export interface VendorContext {
 // ── API calls ─────────────────────────────────────────────────────────────────
 
 /**
- * Fetches the authenticated user and their first vendor concurrently.
- * Throws if no vendor is associated with the account.
+ * Fetches the authenticated user and their vendor context concurrently.
+ * Uses the first row returned by GET /api/vendors/ (sorted by name). Vendor
+ * accounts should receive exactly one vendor; staff/superusers may receive many —
+ * the console does not yet offer a tenant picker, so the first name-sort entry wins.
  */
 export async function fetchVendorContext(): Promise<VendorContext> {
   const [userRes, vendorsRes] = await Promise.all([

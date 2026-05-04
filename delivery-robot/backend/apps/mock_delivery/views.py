@@ -1,8 +1,10 @@
 from django.conf import settings
 from rest_framework import status
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from .serializers import (
     CreateInputSerializer,
@@ -13,8 +15,12 @@ from .serializers import (
 )
 from .services import store
 
+# JWT for kiosk/integration clients; Session for same-site browser sessions.
+MOCK_AUTH = [JWTAuthentication, SessionAuthentication]
+
 
 class RobotsView(APIView):
+    authentication_classes = MOCK_AUTH
     permission_classes = [IsAuthenticated]
 
     def get(self, _request):
@@ -24,6 +30,7 @@ class RobotsView(APIView):
 
 
 class OrdersView(APIView):
+    authentication_classes = MOCK_AUTH
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -50,6 +57,7 @@ class OrdersView(APIView):
 
 
 class OrderDetailView(APIView):
+    authentication_classes = MOCK_AUTH
     permission_classes = [IsAuthenticated]
 
     def get(self, _request, order_id: str):
@@ -63,6 +71,7 @@ class OrderDetailView(APIView):
 
 
 class OrderActionView(APIView):
+    authentication_classes = MOCK_AUTH
     permission_classes = [IsAuthenticated]
 
     STATUS_MAP = {
@@ -91,6 +100,7 @@ class OrderActionView(APIView):
 
 
 class UserView(APIView):
+    authentication_classes = MOCK_AUTH
     permission_classes = [IsAuthenticated]
 
     def get(self, request):

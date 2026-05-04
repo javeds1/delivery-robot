@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { login as apiLogin, logout as apiLogout } from "./api/auth";
 import { isLoggedIn } from "./api/client";
 import { DEFAULT_VENDOR_SETTINGS } from "./data/defaults";
@@ -13,7 +13,12 @@ import type { VendorSettings } from "./types";
 
 type PageKey = "dashboard" | "history" | "menu" | "settings";
 
-const SETTINGS_KEY = "vendor_console_settings";
+/** @deprecated Per-vendor keys are used; kept only for one-time migration. */
+const LEGACY_SETTINGS_KEY = "vendor_console_settings";
+
+function settingsStorageKey(vendorId: number): string {
+  return `vendor_console_settings_v${vendorId}`;
+}
 
 function readJson<T>(key: string, fallback: T): T {
   const raw = localStorage.getItem(key);
@@ -25,20 +30,57 @@ function readJson<T>(key: string, fallback: T): T {
   }
 }
 
+/** Merge saved UI prefs with server-backed vendor + manager profile (fixes stale demo defaults in localStorage). */
+function mergeStoredSettingsWithProfile(
+  stored: VendorSettings | null,
+  vendorName: string,
+  managerEmail: string,
+  managerPhone: string,
+): VendorSettings {
+  const merged: VendorSettings = {
+    ...DEFAULT_VENDOR_SETTINGS,
+    ...(stored ?? {}),
+    businessName: vendorName.trim() || DEFAULT_VENDOR_SETTINGS.businessName,
+  };
+
+  const emailTrim = managerEmail.trim();
+  const phoneTrim = managerPhone.trim();
+
+  if (emailTrim) {
+    merged.contactEmail = emailTrim;
+  } else if (merged.contactEmail === DEFAULT_VENDOR_SETTINGS.contactEmail) {
+    merged.contactEmail = "";
+  }
+
+  if (phoneTrim) {
+    merged.contactPhone = phoneTrim;
+  } else if (merged.contactPhone === DEFAULT_VENDOR_SETTINGS.contactPhone) {
+    merged.contactPhone = "";
+  }
+
+  return merged;
+}
+
 export default function App() {
   const [activePage, setActivePage] = useState<PageKey>("dashboard");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(() => isLoggedIn());
-  const [settings, setSettings] = useState<VendorSettings>(() =>
-    readJson(SETTINGS_KEY, DEFAULT_VENDOR_SETTINGS)
-  );
+  const [settings, setSettings] = useState<VendorSettings>(DEFAULT_VENDOR_SETTINGS);
+  const skipNextSettingsPersistRef = useRef(false);
 
   const {
+    vendorId,
     vendorName,
+    managerEmail,
+    managerPhone,
+    isLoading: vendorProfileLoading,
     isPaused,
     togglePause,
     updateVendorName,
-  } = useVendor();
+  } = useVendor(isAuthenticated);
+
+  const headerVendorLabel =
+    vendorName || (vendorProfileLoading ? "…" : "Vendor");
 
   const {
     allOrders,
@@ -51,11 +93,42 @@ export default function App() {
     error: ordersError,
     newOrderIds,
     updateOrderStatus,
-  } = useOrders({ autoAcceptOrders: settings.autoAcceptOrders });
+  } = useOrders({ autoAcceptOrders: settings.autoAcceptOrders, vendorId });
+
+  useLayoutEffect(() => {
+    if (!isAuthenticated || vendorId == null) return;
+    skipNextSettingsPersistRef.current = true;
+    const key = settingsStorageKey(vendorId);
+    let stored = readJson<VendorSettings | null>(key, null);
+    if (!stored) {
+      const legacy = readJson<VendorSettings | null>(LEGACY_SETTINGS_KEY, null);
+      if (legacy) {
+        stored = legacy;
+        try {
+          localStorage.setItem(key, JSON.stringify(legacy));
+          localStorage.removeItem(LEGACY_SETTINGS_KEY);
+        } catch {
+          /* ignore quota errors */
+        }
+      }
+    }
+    setSettings(
+      mergeStoredSettingsWithProfile(stored, vendorName, managerEmail, managerPhone),
+    );
+  }, [isAuthenticated, vendorId, vendorName, managerEmail, managerPhone]);
 
   useEffect(() => {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  }, [settings]);
+    if (!isAuthenticated || vendorId == null) return;
+    if (skipNextSettingsPersistRef.current) {
+      skipNextSettingsPersistRef.current = false;
+      return;
+    }
+    try {
+      localStorage.setItem(settingsStorageKey(vendorId), JSON.stringify(settings));
+    } catch {
+      /* ignore */
+    }
+  }, [settings, vendorId, isAuthenticated]);
 
   const shellClasses = useMemo(() => {
     if (settings.theme === "light") {
@@ -103,11 +176,26 @@ export default function App() {
     <div className={`${shellClasses} flex flex-col font-sans`}>
       <header className={`grid grid-cols-3 items-center px-5 h-13 border-b shrink-0 relative ${isLight ? "border-zinc-300 bg-white text-zinc-900" : "border-zinc-800 bg-zinc-900 text-zinc-100"}`}>
         <button
+          type="button"
           onClick={() => setIsMenuOpen(true)}
-          className="flex items-center justify-start gap-2"
+          aria-label="Open navigation menu"
+          className="flex items-center justify-start gap-2.5 min-w-0 -ml-1 p-1 -my-1 rounded-md hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/60"
         >
-          <span className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.7)]" />
-          <span className="font-mono text-[18px] font-bold tracking-wide">{vendorName}</span>
+          <span className="shrink-0 text-current" aria-hidden>
+            <svg
+              className="w-6 h-6"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </span>
+          <span className="font-mono text-[18px] font-bold tracking-wide truncate">
+            {headerVendorLabel}
+          </span>
         </button>
         <div className="flex items-center justify-center">
           <span className={`text-xs ${isLight ? "text-zinc-600" : "text-zinc-400"}`}>
@@ -132,7 +220,7 @@ export default function App() {
             className={`fixed left-0 top-0 h-full w-72 z-30 border-r p-4 ${isLight ? "bg-white border-zinc-300 text-zinc-900" : "bg-zinc-900 border-zinc-700 text-zinc-100"}`}
           >
             <div className="flex items-center justify-between mb-4">
-              <span className="font-mono text-lg font-bold tracking-wide">{vendorName}</span>
+              <span className="font-mono text-lg font-bold tracking-wide">{headerVendorLabel}</span>
               <button
                 onClick={() => setIsMenuOpen(false)}
                 className={`px-2 py-1 rounded text-sm ${isLight ? "hover:bg-zinc-100" : "hover:bg-zinc-800"}`}
@@ -189,7 +277,7 @@ export default function App() {
           />
         )}
         {activePage === "history" && <OrderHistoryPage orders={allOrders} isLight={isLight} />}
-        {activePage === "menu" && <MenuPage isLight={isLight} />}
+        {activePage === "menu" && <MenuPage isLight={isLight} vendorId={vendorId} />}
         {activePage === "settings" && <SettingsPage value={settings} isLight={isLight} onChange={handleSettingsSave} />}
       </div>
     </div>

@@ -4,6 +4,7 @@ import type { MenuItem } from "../types";
 
 interface MenuPageProps {
   isLight?: boolean;
+  vendorId: number | null;
 }
 
 type FormData = Omit<MenuItem, "id">;
@@ -18,9 +19,9 @@ const EMPTY_FORM: FormData = {
   isAvailable: true,
 };
 
-export default function MenuPage({ isLight = false }: MenuPageProps) {
+export default function MenuPage({ isLight = false, vendorId }: MenuPageProps) {
   const { items, isLoading, error, clearError, addItem, saveItem, removeItem, toggleAvailable } =
-    useMenu();
+    useMenu(vendorId);
 
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [showForm, setShowForm] = useState(false);
