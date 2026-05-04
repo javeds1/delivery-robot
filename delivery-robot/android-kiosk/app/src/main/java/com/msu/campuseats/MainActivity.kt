@@ -8,6 +8,10 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.msu.campuseats.navigation.AppNavGraph
+import com.msu.campuseats.ui.launch.LaunchScreen
 import com.msu.campuseats.ui.theme.CampusEatsTheme
 
 class MainActivity : ComponentActivity() {
@@ -34,12 +39,15 @@ class MainActivity : ComponentActivity() {
         }
         setContent {
             CampusEatsTheme {
+                var launchDismissed by remember { mutableStateOf(false) }
                 val cartViewModel: CartViewModel = viewModel()
                 val sessionViewModel: SessionViewModel = viewModel()
                 val isAuthenticated = sessionViewModel.isAuthenticated.collectAsState().value
                 val isLoading = sessionViewModel.isLoading.collectAsState().value
                 val error = sessionViewModel.error.collectAsState().value
-                if (isAuthenticated) {
+                if (!launchDismissed) {
+                    LaunchScreen(onContinue = { launchDismissed = true })
+                } else if (isAuthenticated) {
                     AppNavGraph(cartViewModel = cartViewModel)
                 } else if (isLoading) {
                     Column(
