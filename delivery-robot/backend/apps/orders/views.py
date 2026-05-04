@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
 
+from apps.accounts.models import User
 from apps.dispatch.services import trigger_dispatch_if_ready
 
 from .models import Order
@@ -15,9 +16,28 @@ from .serializers import (
 
 
 class OrderViewSet(ReadOnlyModelViewSet, GenericViewSet):
-    queryset = Order.objects.select_related("vendor", "student").prefetch_related("items__menu_item").order_by("-created_at")
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = (
+            Order.objects.select_related("vendor", "student")
+            .prefetch_related("items__menu_item")
+            .order_by("-created_at")
+        )
+        user = self.request.user
+        if not user.is_authenticated:
+            return qs.none()
+        if user.is_superuser:
+            return qs
+        role = getattr(user, "role", User.Role.STUDENT)
+        if role == User.Role.VENDOR:
+            return qs.filter(vendor__manager=user)
+        if role in (User.Role.ADMIN, User.Role.SUPERADMIN):
+            return qs
+        if role == User.Role.STUDENT:
+            return qs.filter(student=user)
+        return qs.none()
 
     def get_serializer_class(self):
         if self.action == "create_order":

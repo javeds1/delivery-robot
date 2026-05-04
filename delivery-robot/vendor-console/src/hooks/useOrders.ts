@@ -14,10 +14,12 @@ interface WsPayload {
 
 interface UseOrdersOptions {
   autoAcceptOrders?: boolean;
+  /** When set, list/detail APIs and WS payloads are scoped to this vendor. */
+  vendorId?: number | null;
 }
 
 export function useOrders(options: UseOrdersOptions = {}) {
-  const { autoAcceptOrders = false } = options;
+  const { autoAcceptOrders = false, vendorId = null } = options;
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,8 +36,16 @@ export function useOrders(options: UseOrdersOptions = {}) {
 
   useEffect(() => {
     let cancelled = false;
-    setIsLoading(true);
     setError(null);
+
+    if (vendorId == null) {
+      setOrders([]);
+      knownIdsRef.current = new Set();
+      setIsLoading(true);
+      return;
+    }
+
+    setIsLoading(true);
 
     fetchOrders()
       .then((initial) => {
@@ -54,7 +64,7 @@ export function useOrders(options: UseOrdersOptions = {}) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [vendorId]);
 
   // ── WebSocket with exponential-backoff reconnect ──────────────────────────
 
@@ -76,6 +86,10 @@ export function useOrders(options: UseOrdersOptions = {}) {
         try {
           payload = JSON.parse(event.data) as WsPayload;
         } catch {
+          return;
+        }
+
+        if (vendorId != null && payload.vendor_id !== vendorId) {
           return;
         }
 
@@ -133,7 +147,7 @@ export function useOrders(options: UseOrdersOptions = {}) {
       if (retryTimer) clearTimeout(retryTimer);
       ws?.close();
     };
-  }, []);
+  }, [vendorId]);
 
   // ── Actions ───────────────────────────────────────────────────────────────
 

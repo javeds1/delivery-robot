@@ -4,6 +4,10 @@ import { fetchVendorContext, patchVendor, type RawVendor } from "../api/vendor";
 export interface VendorState {
   vendorId: number | null;
   vendorName: string;
+  /** Manager account email from GET /api/accounts/me/ (empty if unset). */
+  managerEmail: string;
+  /** Manager account phone from GET /api/accounts/me/ (empty if unset). */
+  managerPhone: string;
   isPaused: boolean;
   isLoading: boolean;
   error: string | null;
@@ -11,9 +15,11 @@ export interface VendorState {
   updateVendorName: (name: string) => Promise<void>;
 }
 
-export function useVendor(): VendorState {
+export function useVendor(isAuthenticated: boolean): VendorState {
   const [vendorId, setVendorId] = useState<number | null>(null);
-  const [vendorName, setVendorName] = useState("Campus Eats");
+  const [vendorName, setVendorName] = useState("");
+  const [managerEmail, setManagerEmail] = useState("");
+  const [managerPhone, setManagerPhone] = useState("");
   const [isPaused, setIsPaused] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,15 +28,30 @@ export function useVendor(): VendorState {
   const vendorRef = useRef<RawVendor | null>(null);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      vendorRef.current = null;
+      setVendorId(null);
+      setVendorName("");
+      setManagerEmail("");
+      setManagerPhone("");
+      setIsPaused(false);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+
     let cancelled = false;
     setIsLoading(true);
+    setError(null);
 
     fetchVendorContext()
-      .then(({ vendor }) => {
+      .then(({ user, vendor }) => {
         if (cancelled) return;
         vendorRef.current = vendor;
         setVendorId(vendor.id);
         setVendorName(vendor.name);
+        setManagerEmail((user.email ?? "").trim());
+        setManagerPhone((user.phone ?? "").trim());
         setIsPaused(vendor.intake_paused);
       })
       .catch((err) => {
@@ -45,7 +66,7 @@ export function useVendor(): VendorState {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAuthenticated]);
 
   const togglePause = useCallback(async () => {
     const vendor = vendorRef.current;
@@ -90,6 +111,8 @@ export function useVendor(): VendorState {
   return {
     vendorId,
     vendorName,
+    managerEmail,
+    managerPhone,
     isPaused,
     isLoading,
     error,

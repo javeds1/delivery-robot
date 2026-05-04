@@ -1,0 +1,23 @@
+{% extends "admin/index.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="module" style="margin-bottom: 18px;">
+  <table summary="{% trans 'Robot simulator' %}">
+    <caption class="nowrap">
+      <a href="{% url 'admin:robot_simulator_dashboard' %}" class="section">{% trans "Robot simulator" %}</a>
+    </caption>
+    <tbody>
+      <tr>
+        <th scope="row" style="width:100%;padding:10px 12px;text-align:left;font-weight:normal;">
+          <strong><a href="{% url 'admin:robot_simulator_dashboard' %}">{% trans "Open Robot Simulator" %}</a></strong>
+          <p class="help" style="margin: 8px 0 0; max-width: 48rem;">
+            {% trans "Advance vendor statuses, dispatch, and mock delivery from the browser (staff only)." %}
+          </p>
+        </th>
+      </tr>
+    </tbody>
+  </table>
+</div>
+{{ block.super }}
+{% endblock %}

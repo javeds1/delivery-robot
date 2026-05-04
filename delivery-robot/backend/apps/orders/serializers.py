@@ -1,6 +1,8 @@
 from rest_framework import serializers
 
+from apps.accounts.models import User
 from apps.menu.models import MenuItem
+from apps.vendors.models import Vendor
 from apps.notifications.services import broadcast_order_update
 
 from .models import Order, OrderItem
@@ -51,6 +53,15 @@ class CreateOrderSerializer(serializers.Serializer):
     def create(self, validated_data):
         items_data = validated_data.pop("items")
         vendor_id = validated_data.pop("vendor_id")
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            role = getattr(request.user, "role", None)
+            if role == User.Role.VENDOR:
+                managed = set(Vendor.objects.filter(manager=request.user).values_list("id", flat=True))
+                if vendor_id not in managed:
+                    raise serializers.ValidationError(
+                        {"vendor_id": "You may only create orders for your vendor."},
+                    )
         order = Order.objects.create(vendor_id=vendor_id, **validated_data)
 
         for item_data in items_data:

@@ -7,35 +7,58 @@ import apiClient from "./client";
 // on read. When the backend eventually gains these fields, this layer can be
 // removed and the mappers updated.
 
-const ENRICHMENT_KEY = "vendor_menu_enrichment_v1";
+/** Legacy global key — migrated per-vendor on first read. */
+const LEGACY_ENRICHMENT_KEY = "vendor_menu_enrichment_v1";
+
+function enrichmentStorageKey(vendorId: number): string {
+  return `vendor_menu_enrichment_v1_v${vendorId}`;
+}
 
 interface Enrichment {
   category: string;
   imageUrl: string;
 }
 
-function loadEnrichment(): Record<string, Enrichment> {
+function loadEnrichment(vendorId: number): Record<string, Enrichment> {
   try {
-    return JSON.parse(localStorage.getItem(ENRICHMENT_KEY) ?? "{}") as Record<string, Enrichment>;
+    const key = enrichmentStorageKey(vendorId);
+    let raw = localStorage.getItem(key);
+    if (!raw) {
+      const legacy = localStorage.getItem(LEGACY_ENRICHMENT_KEY);
+      if (legacy) {
+        raw = legacy;
+        try {
+          localStorage.setItem(key, legacy);
+          localStorage.removeItem(LEGACY_ENRICHMENT_KEY);
+        } catch {
+          /* ignore quota */
+        }
+      }
+    }
+    return JSON.parse(raw ?? "{}") as Record<string, Enrichment>;
   } catch {
     return {};
   }
 }
 
-function saveEnrichment(map: Record<string, Enrichment>): void {
-  localStorage.setItem(ENRICHMENT_KEY, JSON.stringify(map));
+function saveEnrichment(vendorId: number, map: Record<string, Enrichment>): void {
+  try {
+    localStorage.setItem(enrichmentStorageKey(vendorId), JSON.stringify(map));
+  } catch {
+    /* ignore */
+  }
 }
 
-function setItemEnrichment(id: string, data: Enrichment): void {
-  const map = loadEnrichment();
+function setItemEnrichment(vendorId: number, id: string, data: Enrichment): void {
+  const map = loadEnrichment(vendorId);
   map[id] = data;
-  saveEnrichment(map);
+  saveEnrichment(vendorId, map);
 }
 
-function removeItemEnrichment(id: string): void {
-  const map = loadEnrichment();
+function removeItemEnrichment(vendorId: number, id: string): void {
+  const map = loadEnrichment(vendorId);
   delete map[id];
-  saveEnrichment(map);
+  saveEnrichment(vendorId, map);
 }
 
 // ── Raw shapes from the backend ───────────────────────────────────────────────
@@ -52,7 +75,7 @@ interface RawMenuItem {
 
 // ── Mapper ────────────────────────────────────────────────────────────────────
 
-function mapItem(raw: RawMenuItem, enrichment: Record<string, Enrichment>): MenuItem {
+export function mapMenuItemRaw(raw: RawMenuItem, enrichment: Record<string, Enrichment>): MenuItem {
   const id = String(raw.id);
   const e = enrichment[id] ?? { category: "", imageUrl: "" };
   return {
@@ -69,10 +92,10 @@ function mapItem(raw: RawMenuItem, enrichment: Record<string, Enrichment>): Menu
 
 // ── API calls ─────────────────────────────────────────────────────────────────
 
-export async function fetchMenuItems(): Promise<MenuItem[]> {
+export async function fetchMenuItems(vendorId: number): Promise<MenuItem[]> {
   const { data } = await apiClient.get<RawMenuItem[]>("/api/menu/items/");
-  const enrichment = loadEnrichment();
-  return data.map((raw) => mapItem(raw, enrichment));
+  const enrichment = loadEnrichment(vendorId);
+  return data.map((raw) => mapMenuItemRaw(raw, enrichment));
 }
 
 export interface MenuItemFormData {
@@ -96,11 +119,15 @@ export async function createMenuItem(form: MenuItemFormData): Promise<MenuItem> 
     prep_time_minutes: form.prepTimeMins,
   });
   const id = String(data.id);
-  setItemEnrichment(id, { category: form.category, imageUrl: form.imageUrl });
-  return mapItem(data, loadEnrichment());
+  setItemEnrichment(form.vendorId, id, { category: form.category, imageUrl: form.imageUrl });
+  return mapMenuItemRaw(data, loadEnrichment(form.vendorId));
 }
 
-export async function updateMenuItem(id: string, form: Partial<MenuItemFormData>): Promise<MenuItem> {
+export async function updateMenuItem(
+  vendorId: number,
+  id: string,
+  form: Partial<MenuItemFormData>,
+): Promise<MenuItem> {
   const body: Record<string, unknown> = {};
   if (form.name !== undefined) body.name = form.name;
   if (form.description !== undefined) body.description = form.description;
@@ -112,35 +139,17 @@ export async function updateMenuItem(id: string, form: Partial<MenuItemFormData>
 
   // Always update enrichment fields if provided
   if (form.category !== undefined || form.imageUrl !== undefined) {
-    const existing = loadEnrichment()[id] ?? { category: "", imageUrl: "" };
-    setItemEnrichment(id, {
+    const existing = loadEnrichment(vendorId)[id] ?? { category: "", imageUrl: "" };
+    setItemEnrichment(vendorId, id, {
       category: form.category ?? existing.category,
       imageUrl: form.imageUrl ?? existing.imageUrl,
     });
   }
 
-  return mapItem(data, loadEnrichment());
+  return mapMenuItemRaw(data, loadEnrichment(vendorId));
 }
 
-export async function deleteMenuItem(id: string): Promise<void> {
+export async function deleteMenuItem(vendorId: number, id: string): Promise<void> {
   await apiClient.delete(`/api/menu/items/${id}/`);
-  removeItemEnrichment(id);
-}
-
-// ── Vendor helper ─────────────────────────────────────────────────────────────
-// Returns the first vendor managed by the authenticated user. Temporary until
-// a proper vendor-context endpoint is available (Phase 5).
-
-interface RawVendor {
-  id: number;
-  name: string;
-  location_label: string;
-  is_active: boolean;
-  intake_paused: boolean;
-  manager: number | null;
-}
-
-export async function fetchMyVendorId(): Promise<number | null> {
-  const { data } = await apiClient.get<RawVendor[]>("/api/vendors/");
-  return data[0]?.id ?? null;
+  removeItemEnrichment(vendorId, id);
 }

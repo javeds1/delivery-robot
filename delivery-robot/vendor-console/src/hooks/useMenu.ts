@@ -4,26 +4,32 @@ import {
   createMenuItem,
   deleteMenuItem,
   fetchMenuItems,
-  fetchMyVendorId,
   updateMenuItem,
 } from "../api/menu";
 import type { MenuItem } from "../types";
 
-export function useMenu() {
+export function useMenu(vendorId: number | null) {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const vendorIdRef = useRef<number | null>(null);
+  vendorIdRef.current = vendorId;
 
   useEffect(() => {
     let cancelled = false;
-    setIsLoading(true);
     setError(null);
 
-    Promise.all([fetchMyVendorId(), fetchMenuItems()])
-      .then(([vendorId, loadedItems]) => {
+    if (vendorId == null) {
+      setItems([]);
+      setIsLoading(true);
+      return;
+    }
+
+    setIsLoading(true);
+
+    fetchMenuItems(vendorId)
+      .then((loadedItems) => {
         if (cancelled) return;
-        vendorIdRef.current = vendorId;
         setItems(loadedItems);
       })
       .catch((err) => {
@@ -38,7 +44,7 @@ export function useMenu() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [vendorId]);
 
   const addItem = useCallback(
     async (form: Omit<MenuItemFormData, "vendorId">): Promise<boolean> => {
@@ -62,6 +68,8 @@ export function useMenu() {
 
   const saveItem = useCallback(
     async (id: string, form: Partial<MenuItemFormData>): Promise<boolean> => {
+      const vid = vendorIdRef.current;
+      if (vid == null) return false;
       // Optimistic update
       setItems((prev) =>
         prev.map((item) =>
@@ -80,13 +88,13 @@ export function useMenu() {
         ),
       );
       try {
-        const updated = await updateMenuItem(id, form);
+        const updated = await updateMenuItem(vid, id, form);
         setItems((prev) => prev.map((item) => (item.id === id ? updated : item)));
         return true;
       } catch (err) {
         console.error("Failed to update menu item:", err);
         // Revert by re-fetching
-        fetchMenuItems()
+        fetchMenuItems(vid)
           .then(setItems)
           .catch(() => null);
         setError("Could not save changes. Please try again.");
@@ -97,13 +105,15 @@ export function useMenu() {
   );
 
   const removeItem = useCallback(async (id: string): Promise<void> => {
+    const vid = vendorIdRef.current;
+    if (vid == null) return;
     setItems((prev) => prev.filter((item) => item.id !== id));
     try {
-      await deleteMenuItem(id);
+      await deleteMenuItem(vid, id);
     } catch (err) {
       console.error("Failed to delete menu item:", err);
       // Revert
-      fetchMenuItems()
+      fetchMenuItems(vid)
         .then(setItems)
         .catch(() => null);
       setError("Could not delete item. Please try again.");

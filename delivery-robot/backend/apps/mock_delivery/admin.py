@@ -220,4 +220,6 @@ def _patched_get_urls():
 
 if not getattr(admin.site, "_robot_simulator_patched", False):
     admin.site.get_urls = _patched_get_urls
+    # Stock `admin/index.html` is resolved before app templates; use AdminSite hook instead.
+    admin.site.index_template = "admin/robot_simulator_admin_index.html"
     admin.site._robot_simulator_patched = True
